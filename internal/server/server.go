@@ -1,24 +1,25 @@
 package server
 
 import (
-	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/render"
+	"github.com/go-pg/pg/v10"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 
 	"github.com/0xTatsu/mvtn-api/internal/config"
 	"github.com/0xTatsu/mvtn-api/internal/validate"
 )
 
 type App struct {
-	cfg *config.Configuration
-	// db         *sqlx.DB
-	router     *chi.Mux
-	httpServer *http.Server
-	validator  *validator.Validate
+	cfg       *config.Configuration
+	validator *validator.Validate
+	db        *pg.DB
+	// router     *chi.Mux
+	// httpServer *http.Server
 }
 
 func NewApp() *App {
@@ -26,52 +27,31 @@ func NewApp() *App {
 }
 
 func (a *App) Init() {
-	a.cfg, _ = config.New()
+	a.cfg = config.New()
 	a.validator = validate.New()
+	a.db = a.initDB()
+	// a.router = chi.NewRouter()
 }
 
-func (s *Server) newRouter() {
-	s.router = chi.NewRouter()
-}
-
-func (s *Server) setGlobalMiddleware() {
-	s.router.Use(middleware.Json)
-	s.router.Use(middleware.Cors)
-	if s.cfg.Api.RequestLog {
-		s.router.Use(chiMiddleware.Logger)
-	}
-	s.router.Use(chiMiddleware.Recoverer)
-}
-
-func (s *Server) Migrate() {
-	if s.cfg.DockerTest.Driver == "postgres" {
-		driver, err := postgres.WithInstance(s.DB().DB, &postgres.Config{})
-		if err != nil {
-			log.Fatalf("error instantiating database: %v", err)
-		}
-		m, err := migrate.NewWithDatabaseInstance(
-			databaseMigrationPath, s.cfg.DockerTest.Driver, driver,
-		)
-		if err != nil {
-			log.Fatalf("error connecting to database: %v", err)
-		}
-		log.Println("migrating...")
-		err = m.Up()
-		if err != nil {
-			if err != migrate.ErrNoChange {
-				log.Panicf("error migrating: %v", err)
-			}
-		}
-
-		log.Println("done migration.")
-	}
+func (a *App) initDB() *pg.DB {
+	return pg.Connect(&pg.Options{
+		Addr:     a.cfg.DB.Addr,
+		User:     a.cfg.DB.User,
+		Password: a.cfg.DB.Pass,
+	})
 }
 
 func (a *App) Run() error {
-	a.httpServer = &http.Server{
-		Addr:    ":" + a.cfg.Server.Port,
-		Handler: a.router,
-	}
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Heartbeat("/ping"))
+	r.Use(middleware.Timeout(time.Second * time.Duration(a.cfg.Server.Timeout)))
+	r.Use(render.SetContentType(render.ContentTypeJSON))
 
-	return a.httpServer.ListenAndServe()
+	// r.Handle("/*", authorizeHandler())
+
+	return http.ListenAndServe(a.cfg.Server.Address, r)
 }
