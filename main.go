@@ -12,23 +12,24 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v10"
 	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/internal/config"
-	"github.com/0xTatsu/mvtn-api/internal/validate"
+	"github.com/0xTatsu/mvtn-api/auth"
+	"github.com/0xTatsu/mvtn-api/auth/jwt"
+	"github.com/0xTatsu/mvtn-api/config"
+	"github.com/0xTatsu/mvtn-api/validate"
 )
 
-var tokenAuth *jwtauth.JWTAuth
-
-func init() {
-	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
-
-	// For debugging/example purposes, we generate and print
-	// a sample jwt token with claims `user_id:123` here:
-	_, tokenString, _ := tokenAuth.Encode(map[string]interface{}{"user_id": 123})
-	fmt.Printf("DEBUG: a sample jwt is %s\n\n", tokenString)
-}
-
 func main() {
+	// init logger
+	logger, errZapLog := zap.NewDevelopment()
+	if errZapLog != nil {
+		log.Fatalf("failed to init ZAP log: %s", errZapLog)
+	}
+
+	undoReplaceGlobalLog := zap.ReplaceGlobals(logger)
+	defer undoReplaceGlobalLog()
+
 	type App struct {
 		cfg       *config.Configuration
 		validator *validator.Validate
@@ -54,17 +55,16 @@ func main() {
 	r.Use(middleware.Timeout(time.Second * time.Duration(app.cfg.Server.Timeout)))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
+	authJWT := jwt.NewJWT(app.cfg)
+	authAPI := auth.NewAPI(authJWT)
+
 	// Public routes
-	r.Group(func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("welcome anonymous"))
-		})
-	})
+	r.Mount("/auth", authAPI.Router(r))
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
 		// Seek, verify and validate JWT tokens
-		r.Use(jwtauth.Verifier(tokenAuth))
+		r.Use(authJWT.Verifier())
 
 		// Handle valid / invalid tokens. In this example, we use
 		// the provided authenticator middleware, but you can write your

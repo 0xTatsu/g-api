@@ -45,11 +45,9 @@ type Server struct {
 }
 
 type JWT struct {
-	MinSecretLength  int    `mapstructure:"min_secret_length,omitempty"`
-	DurationMinutes  int    `mapstructure:"duration_minutes,omitempty"`
-	RefreshDuration  int    `mapstructure:"refresh_duration_minutes,omitempty"`
-	MaxRefresh       int    `mapstructure:"max_refresh_minutes,omitempty"`
-	SigningAlgorithm string `mapstructure:"signing_algorithm,omitempty"`
+	Secret              string `mapstructure:"jwt_secret,omitempty"`
+	ExpiryInHour        int    `mapstructure:"jwt_expiry_in_hour,omitempty"`
+	RefreshExpiryInHour int    `mapstructure:"jwt_refresh_expiry_in_hour,omitempty"`
 }
 
 type Application struct {
