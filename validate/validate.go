@@ -4,13 +4,15 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+
+	"github.com/0xTatsu/mvtn-api/res"
 )
 
 func New() *validator.Validate {
 	return validator.New()
 }
 
-func Validate(v *validator.Validate, generic interface{}) []string {
+func Validate(v *validator.Validate, generic interface{}) []*res.ErrorItem {
 	err := v.Struct(generic)
 	if err != nil {
 		// this check is only needed when your code could produce
@@ -21,26 +23,59 @@ func Validate(v *validator.Validate, generic interface{}) []string {
 			return nil
 		}
 
-		var errMessages []string
+		errItems := make([]*res.ErrorItem, 0)
 		for _, err := range err.(validator.ValidationErrors) {
-			// errMessages = append(errMessages, fmt.Sprintf("%s is %s", err.StructNamespace(), err.Tag()))
-			errMessages = append(errMessages, fmt.Sprintf("%s%s", err.Field(), getVldErrorMsg(err.ActualTag())))
+			errItems = append(errItems, &res.ErrorItem{
+				Field:   err.Field(),
+				Message: getVldErrorMsg(err),
+			})
 		}
 
-		return errMessages
+		return errItems
 	}
 	return nil
 }
 
 var validationErrors = map[string]string{
-	"required": " is required, but was not received",
-	"min":      "'s value or length is less than allowed",
-	"max":      "'s value or length is bigger than allowed",
+	"required": "this field is required",
+	// "min":      "'s value or length is less than allowed",
+	"max":   "'s value or length is bigger than allowed",
+	"email": "invalid email",
 }
 
-func getVldErrorMsg(s string) string {
-	if v, ok := validationErrors[s]; ok {
-		return v
+func getVldErrorMsg(err validator.FieldError) string {
+	tag := err.ActualTag()
+	if msg, exist := validationErrors[tag]; exist {
+		return msg
 	}
-	return " failed on " + s + " validation"
+
+	if tag == "eqfield" {
+		return err.Field() + " doesn't match " + err.Param()
+	}
+
+	if tag == "min" {
+		// string: number of characters
+		// slices, arrays, maps: number of items
+		// duration: greater than or equal to the duration given
+		switch err.Type().String() {
+		case "string":
+			return "minimum " + err.Param() + " characters"
+		default:
+			return "minimum " + err.Param()
+		}
+	}
+
+	fmt.Println(err.Namespace())
+	fmt.Println(err.Field())
+	fmt.Println(err.StructNamespace())
+	fmt.Println(err.StructField())
+	fmt.Println(err.Tag())
+	fmt.Println(err.ActualTag())
+	fmt.Println(err.Kind())
+	fmt.Println(err.Type())
+	fmt.Println(err.Value())
+	fmt.Println(err.Param())
+	fmt.Println()
+
+	return " failed on " + tag + " validation"
 }

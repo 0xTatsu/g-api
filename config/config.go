@@ -36,6 +36,7 @@ type Database struct {
 	User string `mapstructure:"db_user,omitempty"`
 	Pass string `mapstructure:"db_pass,omitempty"`
 	Addr string `mapstructure:"db_addr,omitempty"`
+	Name string `mapstructure:"db_name,omitempty"`
 }
 
 type Server struct {

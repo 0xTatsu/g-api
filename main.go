@@ -36,7 +36,7 @@ func main() {
 	app.Cfg = config.New()
 	app.Validator = validate.New()
 
-	db := pg.Connect(&pg.Options{Addr: app.Cfg.DB.Addr, User: app.Cfg.DB.User, Password: app.Cfg.DB.Pass})
+	db := pg.Connect(&pg.Options{Addr: app.Cfg.DB.Addr, Database: app.Cfg.DB.Name, User: app.Cfg.DB.User, Password: app.Cfg.DB.Pass})
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

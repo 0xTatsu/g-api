@@ -12,6 +12,7 @@ import (
 	"github.com/0xTatsu/mvtn-api/auth/jwt"
 	"github.com/0xTatsu/mvtn-api/model"
 	"github.com/0xTatsu/mvtn-api/repo"
+	"github.com/0xTatsu/mvtn-api/res"
 	"github.com/0xTatsu/mvtn-api/response"
 	"github.com/0xTatsu/mvtn-api/validate"
 )
@@ -63,19 +64,19 @@ func (a *API) Router(r *chi.Mux) *chi.Mux {
 
 type registerRequest struct {
 	Email           string `json:"email" validate:"required,email"`
-	Password        string `json:"password" validate:"required,gt=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"eqfield=password"`
+	Password        string `json:"password" validate:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
 }
 
 func (a *API) register(w http.ResponseWriter, r *http.Request) {
 	var body registerRequest
-	if err := render.DecodeJSON(r.Body, body); err != nil {
-		response.Error(http.StatusBadRequest, err)
+	if err := render.DecodeJSON(r.Body, &body); err != nil {
+		res.Error(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := validate.Validate(a.app.Validator, body); err != nil {
-		response.Error(http.StatusBadRequest, errors.New(err[0]))
+	if validationErrors := validate.Validate(a.app.Validator, body); len(validationErrors) != 0 {
+		res.Errors(w, r, http.StatusBadRequest, validationErrors)
 		return
 	}
 
@@ -88,7 +89,7 @@ func (a *API) register(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		response.Error(http.StatusInternalServerError, nil)
+		// res.Error(http.StatusInternalServerError, "")
 		return
 	}
 
@@ -113,10 +114,10 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validate.Validate(a.app.Validator, body); err != nil {
-		response.Error(http.StatusBadRequest, errors.New(err[0]))
-		return
-	}
+	// if err := validate.Validate(a.app.Validator, body); err != nil {
+	// 	response.Error(http.StatusBadRequest, errors.New(err[0]))
+	// 	return
+	// }
 
 	account, err := a.accountRepo.GetByEmail(r.Context(), body.Email)
 	if err != nil {

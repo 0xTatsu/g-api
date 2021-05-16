@@ -45,3 +45,10 @@ func Errors(httpStatusCode int, errors []*FieldError) render.Renderer {
 		Errors:         errors,
 	}
 }
+
+var (
+	ErrInternalServerError = &ErrResponse{
+		HTTPStatusCode: http.StatusInternalServerError,
+		StatusText:     http.StatusText(http.StatusInternalServerError),
+	}
+)
