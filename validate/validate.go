@@ -21,27 +21,26 @@ func Validate(v *validator.Validate, generic interface{}) []string {
 			return nil
 		}
 
-		var errs []string
+		var errMessages []string
 		for _, err := range err.(validator.ValidationErrors) {
-			errs = append(errs, fmt.Sprintf("%s is %s", err.StructNamespace(), err.Tag()))
-			// errMsg = append(errMsg, fmt.Sprintf("%s%s", v.Field(), getVldErrorMsg(v.ActualTag())))
+			// errMessages = append(errMessages, fmt.Sprintf("%s is %s", err.StructNamespace(), err.Tag()))
+			errMessages = append(errMessages, fmt.Sprintf("%s%s", err.Field(), getVldErrorMsg(err.ActualTag())))
 		}
 
-		return errs
+		return errMessages
 	}
 	return nil
 }
 
-//
-// var validationErrors = map[string]string{
-// 	"required": " is required, but was not received",
-// 	"min":      "'s value or length is less than allowed",
-// 	"max":      "'s value or length is bigger than allowed",
-// }
-//
-// func getVldErrorMsg(s string) string {
-// 	if v, ok := validationErrors[s]; ok {
-// 		return v
-// 	}
-// 	return " failed on " + s + " validation"
-// }
+var validationErrors = map[string]string{
+	"required": " is required, but was not received",
+	"min":      "'s value or length is less than allowed",
+	"max":      "'s value or length is bigger than allowed",
+}
+
+func getVldErrorMsg(s string) string {
+	if v, ok := validationErrors[s]; ok {
+		return v
+	}
+	return " failed on " + s + " validation"
+}

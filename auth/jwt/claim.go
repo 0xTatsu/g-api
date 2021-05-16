@@ -17,30 +17,30 @@ type StandardClaims struct {
 	Subject   string `json:"sub,omitempty"`
 }
 
-// AppClaims represent the claims parsed from JWT access token.
-type AppClaims struct {
-	ID    int      `json:"id,omitempty"`
+// AccessClaims represent the claims parsed from JWT access token.
+type AccessClaims struct {
+	ID    int64    `json:"id,omitempty"`
 	Sub   string   `json:"sub,omitempty"`
 	Roles []string `json:"roles,omitempty"`
 	StandardClaims
 }
 
-// ParseClaims parses JWT claims into AppClaims.
-func (c *AppClaims) ParseClaims(claims jwt.MapClaims) error {
-	id, ok := claims["id"]
-	if !ok {
+// ParseClaims parses JWT claims into AccessClaims.
+func (c *AccessClaims) ParseClaims(claims jwt.MapClaims) error {
+	id, exist := claims["id"]
+	if !exist {
 		return errors.New("could not parse claim id")
 	}
-	c.ID = int(id.(float64))
+	c.ID = int64(id.(float64))
 
-	sub, ok := claims["sub"]
-	if !ok {
+	sub, exist := claims["sub"]
+	if !exist {
 		return errors.New("could not parse claim sub")
 	}
 	c.Sub = sub.(string)
 
-	rl, ok := claims["roles"]
-	if !ok {
+	rl, exist := claims["roles"]
+	if !exist {
 		return errors.New("could not parse claims roles")
 	}
 
@@ -57,17 +57,17 @@ func (c *AppClaims) ParseClaims(claims jwt.MapClaims) error {
 
 // RefreshClaims represents the claims parsed from JWT refresh token.
 type RefreshClaims struct {
-	ID    int    `json:"id,omitempty"`
-	Token string `json:"token,omitempty"`
+	ID int64 `json:"id,omitempty"`
 	StandardClaims
 }
 
 // ParseClaims parses the JWT claims into RefreshClaims.
 func (c *RefreshClaims) ParseClaims(claims jwt.MapClaims) error {
-	token, ok := claims["token"]
-	if !ok {
-		return errors.New("could not parse claim token")
+	id, exist := claims["id"]
+	if !exist {
+		return errors.New("could not parse claim id")
 	}
-	c.Token = token.(string)
+	c.ID = int64(id.(float64))
+
 	return nil
 }

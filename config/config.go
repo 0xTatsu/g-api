@@ -46,6 +46,7 @@ type Server struct {
 
 type JWT struct {
 	Secret              string `mapstructure:"jwt_secret,omitempty"`
+	HttpCookieKey       string `mapstructure:"http_cookie_key,omitempty"`
 	ExpiryInHour        int    `mapstructure:"jwt_expiry_in_hour,omitempty"`
 	RefreshExpiryInHour int    `mapstructure:"jwt_refresh_expiry_in_hour,omitempty"`
 }

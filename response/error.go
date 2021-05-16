@@ -1,17 +1,9 @@
-package jwt
+package response
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/go-chi/render"
-)
-
-// The list of jwt token errors presented to the end user.
-var (
-	ErrTokenUnauthorized   = errors.New("token unauthorized")
-	ErrInvalidAccessToken  = errors.New("invalid access token")
-	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 )
 
 // ErrResponse renderer type for handling all sorts of errors.
@@ -22,6 +14,13 @@ type ErrResponse struct {
 	StatusText string `json:"status"`          // user-level status message
 	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+
+	Errors []*FieldError `json:"errors,omitempty"`
+}
+
+type FieldError struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 // Render sets the application-specific error code in AppCode.
@@ -30,12 +29,19 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// ErrUnauthorized renders status 401 Unauthorized with custom error message.
-func ErrUnauthorized(err error) render.Renderer {
+func Error(httpStatusCode int, err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
-		HTTPStatusCode: http.StatusUnauthorized,
-		StatusText:     http.StatusText(http.StatusUnauthorized),
+		HTTPStatusCode: httpStatusCode,
+		StatusText:     http.StatusText(httpStatusCode),
 		ErrorText:      err.Error(),
+	}
+}
+
+func Errors(httpStatusCode int, errors []*FieldError) render.Renderer {
+	return &ErrResponse{
+		HTTPStatusCode: httpStatusCode,
+		StatusText:     http.StatusText(httpStatusCode),
+		Errors:         errors,
 	}
 }
