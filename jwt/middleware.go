@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/0xTatsu/mvtn-api/res"
+	"github.com/0xTatsu/mvtn-api/handler/res"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/lestrrat-go/jwx/jwt"
 	"go.uber.org/zap"

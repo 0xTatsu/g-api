@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/0xTatsu/mvtn-api/handler/res"
 	"github.com/0xTatsu/mvtn-api/jwt"
-	"github.com/0xTatsu/mvtn-api/res"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
@@ -16,10 +16,7 @@ import (
 )
 
 var (
-	ErrInvalidLogin  = errors.New("invalid email address")
-	ErrUnknownLogin  = errors.New("email not registered")
 	ErrLoginDisabled = errors.New("login for account disabled")
-	ErrLoginToken    = errors.New("invalid or expired login token")
 )
 
 type Auth struct {

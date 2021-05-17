@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"github.com/0xTatsu/mvtn-api/res"
+	"github.com/0xTatsu/mvtn-api/handler/res"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )

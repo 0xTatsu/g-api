@@ -17,9 +17,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/0xTatsu/mvtn-api/config"
+	appValidator "github.com/0xTatsu/mvtn-api/handler/validator"
 	"github.com/0xTatsu/mvtn-api/model"
 	"github.com/0xTatsu/mvtn-api/repo"
-	appValidator "github.com/0xTatsu/mvtn-api/validator"
 )
 
 func main() {
