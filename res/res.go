@@ -8,9 +8,8 @@ import (
 )
 
 type Response struct {
-	HTTPStatus int          `json:"-"` // http response status code
-	Ok         bool         `json:"ok"`
-	Data       *Data        `json:"data,omitempty"` // application-level error message, for debugging
+	HTTPStatus int          `json:"-"`
+	Data       *Data        `json:"data,omitempty"`
 	Error      *ErrorItem   `json:"error,omitempty"`
 	Errors     []*ErrorItem `json:"errors,omitempty"`
 }
@@ -33,7 +32,6 @@ type ErrorItem struct {
 func Error(w http.ResponseWriter, r *http.Request, httpStatus int, err string) {
 	render.Status(r, httpStatus)
 	render.JSON(w, r, &Response{
-		Ok:    false,
 		Error: &ErrorItem{Message: err},
 	})
 }
@@ -41,7 +39,11 @@ func Error(w http.ResponseWriter, r *http.Request, httpStatus int, err string) {
 func Errors(w http.ResponseWriter, r *http.Request, httpStatus int, errItems []*ErrorItem) {
 	render.Status(r, httpStatus)
 	render.JSON(w, r, &Response{
-		Ok:     false,
 		Errors: errItems,
 	})
+}
+
+func NoBody(w http.ResponseWriter, r *http.Request, httpStatus int) {
+	render.Status(r, httpStatus)
+	render.JSON(w, r, http.NoBody)
 }

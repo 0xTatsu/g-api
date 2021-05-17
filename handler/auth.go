@@ -1,20 +1,18 @@
-package auth
+package handler
 
 import (
 	"errors"
 	"net/http"
 	"time"
 
+	"github.com/0xTatsu/mvtn-api/jwt"
+	"github.com/0xTatsu/mvtn-api/res"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/auth/jwt"
 	"github.com/0xTatsu/mvtn-api/model"
 	"github.com/0xTatsu/mvtn-api/repo"
-	"github.com/0xTatsu/mvtn-api/res"
-	"github.com/0xTatsu/mvtn-api/response"
-	"github.com/0xTatsu/mvtn-api/validate"
 )
 
 var (
@@ -24,25 +22,25 @@ var (
 	ErrLoginToken    = errors.New("invalid or expired login token")
 )
 
-type API struct {
+type Auth struct {
 	app         *model.App
 	authJWT     *jwt.AuthJWT
 	accountRepo repo.AccountRepo
 }
 
-func NewAPI(
+func NewAuth(
 	app *model.App,
 	authJWT *jwt.AuthJWT,
 	accountRepo repo.AccountRepo,
-) *API {
-	return &API{
+) *Auth {
+	return &Auth{
 		app:         app,
 		authJWT:     authJWT,
 		accountRepo: accountRepo,
 	}
 }
 
-func (a *API) Router(r *chi.Mux) *chi.Mux {
+func (a *Auth) Router(r *chi.Mux) *chi.Mux {
 	r.Post("/register", a.register)
 	r.Post("/login", a.login)
 	r.Post("/forget-password", a.forgetPassword)
@@ -68,15 +66,16 @@ type registerRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
 }
 
-func (a *API) register(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) register(w http.ResponseWriter, r *http.Request) {
 	var body registerRequest
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
 		res.Error(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if validationErrors := validate.Validate(a.app.Validator, body); len(validationErrors) != 0 {
+	if validationErrors := a.app.Validator.Validate(body); len(validationErrors) != 0 {
 		res.Errors(w, r, http.StatusBadRequest, validationErrors)
+
 		return
 	}
 
@@ -89,11 +88,12 @@ func (a *API) register(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		// res.Error(http.StatusInternalServerError, "")
+		res.NoBody(w, r, http.StatusInternalServerError)
+
 		return
 	}
 
-	render.JSON(w, r, http.StatusCreated)
+	res.NoBody(w, r, http.StatusCreated)
 }
 
 type loginRequest struct {
@@ -107,41 +107,42 @@ type loginResponse struct {
 	RefreshToken string         `json:"refresh_token"`
 }
 
-func (a *API) login(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
 	var body loginRequest
 	if err := render.DecodeJSON(r.Body, body); err != nil {
-		response.Error(http.StatusBadRequest, err)
+		res.Error(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// if err := validate.Validate(a.app.Validator, body); err != nil {
-	// 	response.Error(http.StatusBadRequest, errors.New(err[0]))
-	// 	return
-	// }
+	if validationErrors := a.app.Validator.Validate(body); validationErrors != nil {
+		res.Errors(w, r, http.StatusBadRequest, validationErrors)
+		return
+	}
 
 	account, err := a.accountRepo.GetByEmail(r.Context(), body.Email)
 	if err != nil {
 		zap.L().Error("cannot get account by email", zap.Error(err))
-		response.Error(http.StatusInternalServerError, nil)
+		res.NoBody(w, r, http.StatusInternalServerError)
+
 		return
 	}
 
 	if !account.CanLogin() {
-		response.Error(http.StatusUnauthorized, ErrLoginDisabled)
+		res.Error(w, r, http.StatusUnauthorized, ErrLoginDisabled.Error())
 		return
 	}
 
 	refreshClaims := jwt.RefreshClaims{ID: account.ID}
 	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(account.Claims(), refreshClaims)
 	if err != nil {
-		response.Error(http.StatusInternalServerError, nil)
+		res.NoBody(w, r, http.StatusInternalServerError)
 		return
 	}
 
 	account.LastLogin = time.Now()
 	if err := a.accountRepo.Update(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		response.Error(http.StatusInternalServerError, nil)
+		res.NoBody(w, r, http.StatusInternalServerError)
 		return
 	}
 
@@ -152,11 +153,11 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (a *API) forgetPassword(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *API) logout(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) logout(w http.ResponseWriter, r *http.Request) {
 	c := &http.Cookie{
 		Name:     a.app.Cfg.JWT.HttpCookieKey,
 		Value:    "",
@@ -170,31 +171,31 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, http.NoBody)
 }
 
-func (a *API) refreshToken(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) refreshToken(w http.ResponseWriter, r *http.Request) {
 	refreshClaims := jwt.RefreshClaimsFromCtx(r.Context())
 
 	account, err := a.accountRepo.GetByID(r.Context(), refreshClaims.ID)
 	if err != nil {
 		zap.L().Error("cannot get account by email", zap.Error(err))
-		response.Error(http.StatusInternalServerError, nil)
+		res.NoBody(w, r, http.StatusInternalServerError)
 		return
 	}
 
 	if !account.CanLogin() {
-		response.Error(http.StatusUnauthorized, ErrLoginDisabled)
+		res.Error(w, r, http.StatusUnauthorized, ErrLoginDisabled.Error())
 		return
 	}
 
 	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(account.Claims(), refreshClaims)
 	if err != nil {
-		response.Error(http.StatusInternalServerError, nil)
+		res.NoBody(w, r, http.StatusInternalServerError)
 		return
 	}
 
 	account.LastLogin = time.Now()
 	if err := a.accountRepo.Update(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		response.Error(http.StatusInternalServerError, nil)
+		res.NoBody(w, r, http.StatusInternalServerError)
 		return
 	}
 

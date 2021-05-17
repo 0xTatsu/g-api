@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/0xTatsu/mvtn-api/auth/jwt"
+	"github.com/0xTatsu/mvtn-api/jwt"
 )
 
 const (

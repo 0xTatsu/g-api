@@ -6,19 +6,20 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/0xTatsu/mvtn-api/handler"
+	"github.com/0xTatsu/mvtn-api/jwt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v10"
+	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/auth"
-	"github.com/0xTatsu/mvtn-api/auth/jwt"
 	"github.com/0xTatsu/mvtn-api/config"
 	"github.com/0xTatsu/mvtn-api/model"
 	"github.com/0xTatsu/mvtn-api/repo"
-	"github.com/0xTatsu/mvtn-api/validate"
+	appValidator "github.com/0xTatsu/mvtn-api/validator"
 )
 
 func main() {
@@ -34,7 +35,7 @@ func main() {
 	var app model.App
 
 	app.Cfg = config.New()
-	app.Validator = validate.New()
+	app.Validator = appValidator.New(validator.New())
 
 	db := pg.Connect(&pg.Options{Addr: app.Cfg.DB.Addr, Database: app.Cfg.DB.Name, User: app.Cfg.DB.User, Password: app.Cfg.DB.Pass})
 
@@ -49,7 +50,7 @@ func main() {
 
 	authJWT := jwt.NewJWT(app.Cfg)
 	accountRepo := repo.NewAccount(db)
-	authAPI := auth.NewAPI(&app, authJWT, accountRepo)
+	authAPI := handler.NewAuth(&app, authJWT, accountRepo)
 
 	// Public routes
 	r.Mount("/auth", authAPI.Router(r))

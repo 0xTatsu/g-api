@@ -4,12 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/0xTatsu/mvtn-api/res"
 	"github.com/go-chi/jwtauth/v5"
-	"github.com/go-chi/render"
 	"github.com/lestrrat-go/jwx/jwt"
 	"go.uber.org/zap"
-
-	"github.com/0xTatsu/mvtn-api/response"
 )
 
 const (
@@ -30,14 +28,13 @@ func RefreshClaimsFromCtx(ctx context.Context) RefreshClaims {
 func Authenticator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, claims, err := jwtauth.FromContext(r.Context())
-
 		if err != nil || token == nil {
-			render.JSON(w, r, response.Error(http.StatusUnauthorized, err))
+			res.Error(w, r, http.StatusUnauthorized, "No token found")
 			return
 		}
 
 		if err := jwt.Validate(token); err != nil {
-			render.JSON(w, r, response.Error(http.StatusUnauthorized, err))
+			res.Error(w, r, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -46,7 +43,7 @@ func Authenticator(next http.Handler) http.Handler {
 		err = accessClaims.ParseClaims(claims)
 		if err != nil {
 			zap.L().Error("cannot parse claims", zap.Error(err))
-			render.JSON(w, r, response.Error(http.StatusUnauthorized, ErrInvalidAccessToken))
+			res.Error(w, r, http.StatusUnauthorized, ErrInvalidAccessToken.Error())
 			return
 		}
 
@@ -66,7 +63,7 @@ func AuthenticateRefreshJWT(next http.Handler) http.Handler {
 		err = c.ParseClaims(claims)
 		if err != nil {
 			zap.L().Error("parse token fails", zap.Error(err))
-			render.JSON(w, r, response.Error(http.StatusUnauthorized, ErrInvalidRefreshToken))
+			res.Error(w, r, http.StatusUnauthorized, ErrInvalidRefreshToken.Error())
 			return
 		}
 
