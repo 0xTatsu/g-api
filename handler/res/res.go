@@ -1,27 +1,10 @@
 package res
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/render"
 )
-
-type Response struct {
-	HTTPStatus int          `json:"-"`
-	Data       *Data        `json:"data,omitempty"`
-	Error      *ErrorItem   `json:"error,omitempty"`
-	Errors     []*ErrorItem `json:"errors,omitempty"`
-}
-
-type Data struct {
-	ItemsPerPage int `json:"itemsPerPage,omitempty"`
-	TotalItems   int `json:"totalItems,omitempty"`
-	PageIndex    int `json:"pageIndex,omitempty"`
-
-	Items []json.RawMessage `json:"items,omitempty"`
-	Item  *json.RawMessage  `json:"Item,omitempty"`
-}
 
 type ErrorItem struct {
 	Code    int    `json:"code,omitempty"`
@@ -29,21 +12,83 @@ type ErrorItem struct {
 	Message string `json:"message,omitempty"`
 }
 
-func Error(w http.ResponseWriter, r *http.Request, httpStatus int, err string) {
-	render.Status(r, httpStatus)
+type Error struct {
+	Code    int         `json:"code,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Errors  []ErrorItem `json:"errors,omitempty"`
+}
+
+type Item interface{}
+type Items []Item
+
+type Data struct {
+	Items Items `json:"items,omitempty"`
+
+	// paging
+	TotalItems   int `json:"totalItems,omitempty"`
+	ItemsPerPage int `json:"itemsPerPage,omitempty"`
+	TotalPages   int `json:"totalPages,omitempty"`
+	PageIndex    int `json:"pageIndex,omitempty"`
+	StartIndex   int `json:"startIndex,omitempty"`
+}
+
+type Response struct {
+	Data    Data   `json:"data,omitempty"`
+	Message string `json:"message,omitempty"`
+	Error   Error  `json:"error,omitempty"`
+}
+
+func WithItems(w http.ResponseWriter, r *http.Request, items Items) {
+	render.Status(r, http.StatusOK)
 	render.JSON(w, r, &Response{
-		Error: &ErrorItem{Message: err},
+		Data: Data{
+			Items: items,
+		},
 	})
 }
 
-func Errors(w http.ResponseWriter, r *http.Request, httpStatus int, errItems []*ErrorItem) {
-	render.Status(r, httpStatus)
+func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
+	render.Status(r, http.StatusOK)
 	render.JSON(w, r, &Response{
-		Errors: errItems,
+		Data: Data{
+			Items: []Item{item},
+		},
 	})
 }
 
-func NoBody(w http.ResponseWriter, r *http.Request, httpStatus int) {
+func WithErrors(w http.ResponseWriter, r *http.Request, errors []ErrorItem) {
+	render.Status(r, http.StatusBadRequest)
+	render.JSON(w, r, &Response{
+		Error: Error{
+			Errors: errors,
+		},
+	})
+}
+
+func WithErrorMsg(w http.ResponseWriter, r *http.Request, errorMsg string) {
+	render.Status(r, http.StatusBadRequest)
+	render.JSON(w, r, &Response{
+		Error: Error{
+			Message: errorMsg,
+		},
+	})
+}
+
+func NoData(w http.ResponseWriter, r *http.Request, httpStatus int) {
 	render.Status(r, httpStatus)
-	render.JSON(w, r, http.NoBody)
+	render.JSON(w, r, &Response{
+		Message: http.StatusText(httpStatus),
+	})
+}
+
+func Created(w http.ResponseWriter, r *http.Request) {
+	NoData(w, r, http.StatusCreated)
+}
+
+func Unauthorized(w http.ResponseWriter, r *http.Request) {
+	NoData(w, r, http.StatusUnauthorized)
+}
+
+func InternalServerError(w http.ResponseWriter, r *http.Request) {
+	NoData(w, r, http.StatusInternalServerError)
 }

@@ -17,8 +17,11 @@ type Account struct {
 	LastLogin time.Time `json:"last_login,omitempty"`
 
 	Email  string   `json:"email"`
-	Active bool     `sql:",notnull" json:"active"`
-	Roles  []string `pg:",array" json:"roles,omitempty"`
+	Active bool     `json:"active"`
+	Roles  []string `json:"roles,omitempty" pg:",array"`
+
+	AccessToken  string `json:"access_token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
 // CanLogin returns true if user is allowed to login.

@@ -1,22 +1,18 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
-	"github.com/0xTatsu/mvtn-api/handler/res"
-	"github.com/0xTatsu/mvtn-api/jwt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
+	"github.com/0xTatsu/mvtn-api/handler/res"
+	"github.com/0xTatsu/mvtn-api/jwt"
+
 	"github.com/0xTatsu/mvtn-api/model"
 	"github.com/0xTatsu/mvtn-api/repo"
-)
-
-var (
-	ErrLoginDisabled = errors.New("login for account disabled")
 )
 
 type Auth struct {
@@ -66,12 +62,12 @@ type registerRequest struct {
 func (a *Auth) register(w http.ResponseWriter, r *http.Request) {
 	var body registerRequest
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
-		res.Error(w, r, http.StatusBadRequest, err.Error())
+		res.WithErrorMsg(w, r, err.Error())
 		return
 	}
 
 	if validationErrors := a.app.Validator.Validate(body); len(validationErrors) != 0 {
-		res.Errors(w, r, http.StatusBadRequest, validationErrors)
+		res.WithErrors(w, r, validationErrors)
 
 		return
 	}
@@ -85,12 +81,12 @@ func (a *Auth) register(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 
 		return
 	}
 
-	res.NoBody(w, r, http.StatusCreated)
+	res.Created(w, r)
 }
 
 type loginRequest struct {
@@ -98,56 +94,49 @@ type loginRequest struct {
 	Password string `json:"password" validate:"required,gt=8"`
 }
 
-type loginResponse struct {
-	Account      *model.Account `json:"account"`
-	AccessToken  string         `json:"access_token"`
-	RefreshToken string         `json:"refresh_token"`
-}
-
 func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
 	var body loginRequest
 	if err := render.DecodeJSON(r.Body, body); err != nil {
-		res.Error(w, r, http.StatusBadRequest, err.Error())
+		res.WithErrorMsg(w, r, err.Error())
 		return
 	}
 
 	if validationErrors := a.app.Validator.Validate(body); validationErrors != nil {
-		res.Errors(w, r, http.StatusBadRequest, validationErrors)
+		res.WithErrors(w, r, validationErrors)
 		return
 	}
 
 	account, err := a.accountRepo.GetByEmail(r.Context(), body.Email)
 	if err != nil {
 		zap.L().Error("cannot get account by email", zap.Error(err))
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 
 		return
 	}
 
 	if !account.CanLogin() {
-		res.Error(w, r, http.StatusUnauthorized, ErrLoginDisabled.Error())
+		res.Unauthorized(w, r)
 		return
 	}
 
 	refreshClaims := jwt.RefreshClaims{ID: account.ID}
 	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(account.Claims(), refreshClaims)
 	if err != nil {
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 		return
 	}
 
 	account.LastLogin = time.Now()
 	if err := a.accountRepo.Update(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 		return
 	}
 
-	render.JSON(w, r, &loginResponse{
-		Account:      account,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	})
+	account.AccessToken = accessToken
+	account.RefreshToken = refreshToken
+
+	res.WithItem(w, r, account)
 }
 
 func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
@@ -174,31 +163,30 @@ func (a *Auth) refreshToken(w http.ResponseWriter, r *http.Request) {
 	account, err := a.accountRepo.GetByID(r.Context(), refreshClaims.ID)
 	if err != nil {
 		zap.L().Error("cannot get account by email", zap.Error(err))
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 		return
 	}
 
 	if !account.CanLogin() {
-		res.Error(w, r, http.StatusUnauthorized, ErrLoginDisabled.Error())
+		res.Unauthorized(w, r)
 		return
 	}
 
 	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(account.Claims(), refreshClaims)
 	if err != nil {
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 		return
 	}
 
 	account.LastLogin = time.Now()
 	if err := a.accountRepo.Update(r.Context(), account); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		res.NoBody(w, r, http.StatusInternalServerError)
+		res.InternalServerError(w, r)
 		return
 	}
 
-	render.JSON(w, r, &loginResponse{
-		Account:      account,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	})
+	account.AccessToken = accessToken
+	account.RefreshToken = refreshToken
+
+	res.WithItem(w, r, account)
 }
