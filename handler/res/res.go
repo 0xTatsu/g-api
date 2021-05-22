@@ -85,6 +85,10 @@ func Created(w http.ResponseWriter, r *http.Request) {
 	NoData(w, r, http.StatusCreated)
 }
 
+func NoContent(w http.ResponseWriter, r *http.Request) {
+	NoData(w, r, http.StatusNoContent)
+}
+
 func Unauthorized(w http.ResponseWriter, r *http.Request) {
 	NoData(w, r, http.StatusUnauthorized)
 }

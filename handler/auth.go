@@ -7,10 +7,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/0xTatsu/mvtn-api/handler/res"
 	"github.com/0xTatsu/mvtn-api/jwt"
-
 	"github.com/0xTatsu/mvtn-api/model"
 	"github.com/0xTatsu/mvtn-api/repo"
 )
@@ -72,11 +72,18 @@ func (a *Auth) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hashPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		zap.L().Error("cannot generate has from password", zap.Error(err))
+		res.InternalServerError(w, r)
+	}
+
 	account := &model.Account{
 		LastLogin: time.Now(),
 		Email:     body.Email,
 		Active:    true,
 		Roles:     []string{model.RoleUser},
+		Password:  string(hashPassword),
 	}
 
 	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
@@ -114,6 +121,10 @@ func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !account.IsValidPassword(body.Password) {
+		res.Unauthorized(w, r)
+	}
+
 	if !account.CanLogin() {
 		res.Unauthorized(w, r)
 		return
@@ -140,7 +151,51 @@ func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
+	type request struct {
+		Password        string `json:"password" validate:"required,min=8"`
+		NewPassword     string `json:"new_password" validate:"required,min=8"`
+		ConfirmPassword string `json:"confirm_password" validate:"eqfield=NewPassword"`
+	}
 
+	body := request{}
+	if err := render.DecodeJSON(r.Body, &body); err != nil {
+		res.WithErrorMsg(w, r, err.Error())
+		return
+	}
+
+	if validationErrors := a.app.Validator.Validate(body); len(validationErrors) != 0 {
+		res.WithErrors(w, r, validationErrors)
+
+		return
+	}
+
+	accessClaims := jwt.ClaimsFromCtx(r.Context())
+	account, err := a.accountRepo.GetByID(r.Context(), accessClaims.ID)
+	if err != nil {
+		zap.L().Error("cannot get account by ID", zap.Error(err))
+		res.InternalServerError(w, r)
+
+		return
+	}
+
+	if !account.IsValidPassword(body.Password) {
+		res.Unauthorized(w, r)
+	}
+
+	hashPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		zap.L().Error("cannot generate has from password", zap.Error(err))
+		res.InternalServerError(w, r)
+	}
+
+	account.Password = string(hashPassword)
+	if err := a.accountRepo.Update(r.Context(), account); err != nil {
+		zap.L().Error("cannot update password", zap.Error(err))
+		res.InternalServerError(w, r)
+		return
+	}
+
+	res.NoContent(w, r)
 }
 
 func (a *Auth) logout(w http.ResponseWriter, r *http.Request) {

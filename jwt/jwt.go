@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -10,12 +9,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/0xTatsu/mvtn-api/config"
-)
-
-// The list of jwt token errors presented to the end user.
-var (
-	ErrInvalidAccessToken  = errors.New("invalid access token")
-	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 )
 
 type AuthJWT struct {
