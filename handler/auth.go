@@ -53,14 +53,14 @@ func (a *Auth) Router(r *chi.Mux) *chi.Mux {
 	return r
 }
 
-type registerRequest struct {
-	Email           string `json:"email" validate:"required,email"`
-	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
-}
-
 func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
-	var body registerRequest
+	type request struct {
+		Email           string `json:"email" validate:"required,email"`
+		Password        string `json:"password" validate:"required,min=8"`
+		ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
+	}
+
+	var body request
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
 		res.WithErrorMsg(w, r, err.Error())
 		return
@@ -74,7 +74,7 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
-		zap.L().Error("cannot generate has from password", zap.Error(err))
+		zap.L().Error("cannot generate hash password", zap.Error(err))
 		res.InternalServerError(w, r)
 	}
 
@@ -87,7 +87,7 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
-		zap.L().Error("cannot update lastLogin", zap.Error(err))
+		zap.L().Error("cannot create account", zap.Error(err))
 		res.InternalServerError(w, r)
 
 		return
@@ -96,13 +96,13 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	res.Created(w, r)
 }
 
-type loginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,gt=8"`
-}
-
 func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
-	var body loginRequest
+	type request struct {
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required,gt=8"`
+	}
+
+	var body request
 	if err := render.DecodeJSON(r.Body, body); err != nil {
 		res.WithErrorMsg(w, r, err.Error())
 		return
