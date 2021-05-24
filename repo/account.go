@@ -8,6 +8,7 @@ import (
 	"github.com/0xTatsu/mvtn-api/model"
 )
 
+//go:generate mockery --name AccountRepo --case snake
 type AccountRepo interface {
 	GetByID(ctx context.Context, id int64) (*model.Account, error)
 	GetByEmail(ctx context.Context, email string) (*model.Account, error)

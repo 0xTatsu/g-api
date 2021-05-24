@@ -1,9 +1,10 @@
 package validator
 
 import (
-	"github.com/0xTatsu/mvtn-api/handler/res"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
+
+	"github.com/0xTatsu/mvtn-api/handler/res"
 )
 
 type Validator struct {
@@ -16,7 +17,7 @@ func New(validator *validator.Validate) *Validator {
 	}
 }
 
-func (v Validator) Validate(input interface{}) []*res.ErrorItem {
+func (v Validator) Validate(input interface{}) []res.ErrorItem {
 	err := v.validator.Struct(input)
 	if err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -25,9 +26,9 @@ func (v Validator) Validate(input interface{}) []*res.ErrorItem {
 			return nil
 		}
 
-		errItems := make([]*res.ErrorItem, 0)
+		errItems := make([]res.ErrorItem, 0)
 		for _, err := range err.(validator.ValidationErrors) {
-			errItems = append(errItems, &res.ErrorItem{
+			errItems = append(errItems, res.ErrorItem{
 				Field:   err.Field(),
 				Message: errMsgByTag(err),
 			})

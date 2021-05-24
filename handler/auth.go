@@ -34,7 +34,7 @@ func NewAuth(
 }
 
 func (a *Auth) Router(r *chi.Mux) *chi.Mux {
-	r.Post("/register", a.register)
+	r.Post("/register", a.Register)
 	r.Post("/login", a.login)
 	r.Post("/forget-password", a.forgetPassword)
 
@@ -59,7 +59,7 @@ type registerRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
 }
 
-func (a *Auth) register(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	var body registerRequest
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
 		res.WithErrorMsg(w, r, err.Error())

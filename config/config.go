@@ -26,10 +26,9 @@ func New() *Configuration {
 
 // Configuration holds data necessary for configuring application
 type Configuration struct {
-	Server *Server      `mapstructure:"server,omitempty"`
-	DB     *Database    `mapstructure:"database,omitempty"`
-	JWT    *JWT         `mapstructure:"jwt,omitempty"`
-	App    *Application `mapstructure:"application,omitempty"`
+	Server *Server   `mapstructure:"server,omitempty"`
+	DB     *Database `mapstructure:"database,omitempty"`
+	JWT    *JWT      `mapstructure:"jwt,omitempty"`
 }
 
 type Database struct {
@@ -50,8 +49,4 @@ type JWT struct {
 	HttpCookieKey       string `mapstructure:"http_cookie_key,omitempty"`
 	ExpiryInHour        int    `mapstructure:"jwt_expiry_in_hour,omitempty"`
 	RefreshExpiryInHour int    `mapstructure:"jwt_refresh_expiry_in_hour,omitempty"`
-}
-
-type Application struct {
-	SwaggerUIPath string `mapstructure:"swagger_ui_path,omitempty"`
 }

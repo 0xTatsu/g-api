@@ -6,20 +6,11 @@ import (
 	"github.com/go-chi/render"
 )
 
-type ErrorItem struct {
-	Code    int    `json:"code,omitempty"`
-	Field   string `json:"field,omitempty"`
+type Response struct {
 	Message string `json:"message,omitempty"`
+	Data    *Data  `json:"data,omitempty"`
+	Error   *Error `json:"error,omitempty"`
 }
-
-type Error struct {
-	Code    int         `json:"code,omitempty"`
-	Message string      `json:"message,omitempty"`
-	Errors  []ErrorItem `json:"errors,omitempty"`
-}
-
-type Item interface{}
-type Items []Item
 
 type Data struct {
 	Items Items `json:"items,omitempty"`
@@ -32,16 +23,25 @@ type Data struct {
 	StartIndex   int `json:"startIndex,omitempty"`
 }
 
-type Response struct {
-	Data    Data   `json:"data,omitempty"`
+type Item interface{}
+type Items []Item
+
+type Error struct {
+	Code    int         `json:"code,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Errors  []ErrorItem `json:"errors,omitempty"`
+}
+
+type ErrorItem struct {
+	Code    int    `json:"code,omitempty"`
+	Field   string `json:"field,omitempty"`
 	Message string `json:"message,omitempty"`
-	Error   Error  `json:"error,omitempty"`
 }
 
 func WithItems(w http.ResponseWriter, r *http.Request, items Items) {
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, &Response{
-		Data: Data{
+		Data: &Data{
 			Items: items,
 		},
 	})
@@ -50,7 +50,7 @@ func WithItems(w http.ResponseWriter, r *http.Request, items Items) {
 func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, &Response{
-		Data: Data{
+		Data: &Data{
 			Items: []Item{item},
 		},
 	})
@@ -59,7 +59,7 @@ func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
 func WithErrors(w http.ResponseWriter, r *http.Request, errors []ErrorItem) {
 	render.Status(r, http.StatusBadRequest)
 	render.JSON(w, r, &Response{
-		Error: Error{
+		Error: &Error{
 			Errors: errors,
 		},
 	})
@@ -68,7 +68,7 @@ func WithErrors(w http.ResponseWriter, r *http.Request, errors []ErrorItem) {
 func WithErrorMsg(w http.ResponseWriter, r *http.Request, errorMsg string) {
 	render.Status(r, http.StatusBadRequest)
 	render.JSON(w, r, &Response{
-		Error: Error{
+		Error: &Error{
 			Message: errorMsg,
 		},
 	})

@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/0xTatsu/mvtn-api/handler"
-	"github.com/0xTatsu/mvtn-api/jwt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
@@ -15,6 +13,9 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
+
+	"github.com/0xTatsu/mvtn-api/handler"
+	"github.com/0xTatsu/mvtn-api/jwt"
 
 	"github.com/0xTatsu/mvtn-api/config"
 	appValidator "github.com/0xTatsu/mvtn-api/handler/validator"
