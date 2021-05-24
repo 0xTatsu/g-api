@@ -13,23 +13,24 @@ const (
 )
 
 type Account struct {
-	ID       int64    `json:"id"`
-	Password string   `json:"-"`
-	Email    string   `json:"email"`
-	Active   bool     `json:"active"`
-	Roles    []string `json:"roles,omitempty" pg:",array"`
+	ID        int64     `json:"id"`
+	Password  string    `json:"-"`
+	Email     string    `json:"email"`
+	Active    bool      `json:"active"`
+	Roles     []string  `json:"roles,omitempty" pg:",array"`
+	LastLogin time.Time `json:"last_login,omitempty"`
 
 	AccessToken  string `json:"access_token,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	LastLogin time.Time `json:"last_login,omitempty"`
+	CreatedAt time.Time  `json:"created_at,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at,omitempty"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
 // CanLogin returns true if user is allowed to login.
 func (a *Account) CanLogin() bool {
-	return a.Active
+	return a.Active && !(a.DeletedAt != nil)
 }
 
 func (a *Account) IsValidPassword(password string) bool {

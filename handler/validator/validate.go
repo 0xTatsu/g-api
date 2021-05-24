@@ -41,10 +41,10 @@ func (v Validator) Validate(input interface{}) []res.ErrorItem {
 
 func errMsgByTag(err validator.FieldError) string {
 	errMsgMap := map[string]string{
-		"email":    "invalid email",
+		"email":    "Invalid email",
 		"required": err.Field() + " is required",
-		"min":      "minimum " + err.Param(),
-		"max":      "maximum " + err.Param(),
+		"min":      "Minimum " + err.Param(),
+		"max":      "Maximum " + err.Param(),
 		"eqfield":  err.Field() + " doesn't match " + err.Param(),
 	}
 

@@ -35,7 +35,7 @@ func NewAuth(
 
 func (a *Auth) Router(r *chi.Mux) *chi.Mux {
 	r.Post("/register", a.Register)
-	r.Post("/login", a.login)
+	r.Post("/login", a.Login)
 	r.Post("/forget-password", a.forgetPassword)
 
 	r.Group(func(r chi.Router) {
@@ -89,21 +89,20 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
 		zap.L().Error("cannot create account", zap.Error(err))
 		res.InternalServerError(w, r)
-
 		return
 	}
 
 	res.Created(w, r)
 }
 
-func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 		Email    string `json:"email" validate:"required,email"`
-		Password string `json:"password" validate:"required,gt=8"`
+		Password string `json:"password" validate:"required,min=8"`
 	}
 
 	var body request
-	if err := render.DecodeJSON(r.Body, body); err != nil {
+	if err := render.DecodeJSON(r.Body, &body); err != nil {
 		res.WithErrorMsg(w, r, err.Error())
 		return
 	}
@@ -117,12 +116,12 @@ func (a *Auth) login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		zap.L().Error("cannot get account by email", zap.Error(err))
 		res.InternalServerError(w, r)
-
 		return
 	}
 
 	if !account.IsValidPassword(body.Password) {
 		res.Unauthorized(w, r)
+		return
 	}
 
 	if !account.CanLogin() {
