@@ -12,14 +12,14 @@ import (
 
 var ErrTest = errors.New("mock error")
 
-func Body2Errors(t *testing.T, body io.Reader) []res.ErrorItem {
+func Body2Errors(t *testing.T, body io.Reader) res.Errors {
 	t.Helper()
 	response := res.Response{}
 	if err := json.NewDecoder(body).Decode(&response); err != nil {
 		t.Fatalf("cannot parse body (%v) to response struct: '%v'", body, err)
 	}
 
-	return response.Error.Errors
+	return *response.Errors
 }
 
 func Body2Items(t *testing.T, body io.Reader) []map[string]interface{} {

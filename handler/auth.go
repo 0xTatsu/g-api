@@ -98,7 +98,7 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res.Created(r)
+	res.Created(w, r)
 }
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +122,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		zap.L().Error("cannot get user by email", zap.Error(err))
 		res.InternalServerError(w, r)
+		// TODO: distinguish record not found
 		return
 	}
 

@@ -53,16 +53,15 @@ func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
 
 func NoData(w http.ResponseWriter, r *http.Request, httpStatus int) {
 	render.Status(r, httpStatus)
-	render.NoContent(w, r)
+	render.JSON(w, r, http.NoBody)
 }
 
-func Created(r *http.Request) {
-	render.Status(r, http.StatusCreated)
+func Created(w http.ResponseWriter, r *http.Request) {
+	NoData(w, r, http.StatusCreated)
 }
 
 func Updated(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNoContent)
-	render.NoContent(w, r)
+	NoData(w, r, http.StatusNoContent)
 }
 
 func Unauthorized(w http.ResponseWriter, r *http.Request) {

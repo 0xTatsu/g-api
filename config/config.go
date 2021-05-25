@@ -27,7 +27,7 @@ type Configuration struct {
 	JwtRefreshExpiryInHour int    `mapstructure:"JWT_REFRESH_EXPIRY_IN_HOUR,omitempty"`
 
 	// Database
-	DbUrl string `mapstructure:"DATABASE_URL,omitempty"`
+	DbUrl string `mapstructure:"DATABASE_DNS,omitempty"`
 
 	// Server
 	ServerTimeout int    `mapstructure:"SERVER_TIMEOUT_SECONDS,omitempty"`
