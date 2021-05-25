@@ -9,7 +9,7 @@ import (
 )
 
 type Validator interface {
-	Validate(input interface{}) []res.ErrorItem
+	Validate(input interface{}) res.Errors
 }
 
 type App struct {

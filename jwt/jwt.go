@@ -25,7 +25,7 @@ func NewJWT(
 	}
 }
 
-// CreateAccessToken returns an access token for provided account claims.
+// CreateAccessToken returns an access token for provided user claims.
 func (a *AuthJWT) CreateAccessToken(c AccessClaims) (string, error) {
 	c.IssuedAt = time.Now().Unix()
 	c.ExpiresAt = time.Now().Add(time.Hour * time.Duration(a.cfg.JwtExpiryInHour)).Unix()

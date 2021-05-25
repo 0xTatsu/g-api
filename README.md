@@ -10,7 +10,7 @@ brew install golang-migrate
 migrate -help
 
 # Create migration files
-migrate create -ext sql -dir db/migration account
+migrate create -ext sql -dir db/migration user
 
 # Run migration
 migrate -database YOUR_DATABASE_URL -path PATH_TO_YOUR_MIGRATIONS up/down

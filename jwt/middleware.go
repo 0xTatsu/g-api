@@ -31,6 +31,7 @@ func Authenticator(next http.Handler) http.Handler {
 		token, claims, err := jwtauth.FromContext(r.Context())
 		if err != nil || token == nil {
 			res.Unauthorized(w, r)
+			// TODO: check to return no token found err?
 			return
 		}
 

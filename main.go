@@ -11,15 +11,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
-	"github.com/go-pg/pg/v10"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
-
-	"github.com/0xTatsu/g-api/handler"
-	"github.com/0xTatsu/g-api/jwt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/0xTatsu/g-api/config"
+	"github.com/0xTatsu/g-api/handler"
 	appValidator "github.com/0xTatsu/g-api/handler/validator"
+	"github.com/0xTatsu/g-api/jwt"
 	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/repo"
 )
@@ -50,8 +50,8 @@ func main() {
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	authJWT := jwt.NewJWT(app.Cfg)
-	accountRepo := repo.NewAccount(db)
-	authAPI := handler.NewAuth(&app, authJWT, accountRepo)
+	userRepo := repo.NewUser(db)
+	authAPI := handler.NewAuth(&app, authJWT, userRepo)
 
 	// Public routes
 	r.Mount("/auth", authAPI.Router(r))
@@ -63,7 +63,7 @@ func main() {
 
 		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
 			_, claims, _ := jwtauth.FromContext(r.Context())
-			fmt.Println(claims)
+			fmt.Println(claims) // TODO: remove
 			render.JSON(w, r, http.NoBody)
 		})
 	})
@@ -89,11 +89,15 @@ func initLogger() (*zap.Logger, func()) {
 	return logger, undoReplaceGlobalLog
 }
 
-func initDB(dbURL string) *pg.DB {
-	opt, err := pg.ParseURL(dbURL)
+func initDB(dsn string) *gorm.DB {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("cannot connect db: %s", err)
+		log.Fatal("cannot connect db: ", err)
 	}
 
-	return pg.Connect(opt)
+	if err = db.AutoMigrate(&model.User{}); err != nil {
+		log.Fatal("failed to migrate db: ", err)
+	}
+
+	return db
 }

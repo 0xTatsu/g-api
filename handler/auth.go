@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -16,31 +17,31 @@ import (
 )
 
 type Auth struct {
-	app         *model.App
-	authJWT     *jwt.AuthJWT
-	accountRepo repo.AccountRepo
+	app      *model.App
+	authJWT  *jwt.AuthJWT
+	userRepo repo.UserRepo
 }
 
 func NewAuth(
 	app *model.App,
 	authJWT *jwt.AuthJWT,
-	accountRepo repo.AccountRepo,
+	userRepo repo.UserRepo,
 ) *Auth {
 	return &Auth{
-		app:         app,
-		authJWT:     authJWT,
-		accountRepo: accountRepo,
+		app:      app,
+		authJWT:  authJWT,
+		userRepo: userRepo,
 	}
 }
 
 func (a *Auth) Router(r *chi.Mux) *chi.Mux {
 	r.Post("/register", a.Register)
 	r.Post("/login", a.Login)
-	r.Post("/forget-password", a.forgetPassword)
 
 	r.Group(func(r chi.Router) {
 		r.Use(a.authJWT.Verifier())
 		r.Use(jwt.Authenticator)
+		r.Put("/change-password", a.ChangePassword)
 		r.Post("/logout", a.logout)
 	})
 
@@ -62,13 +63,12 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 
 	var body request
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
-		res.WithErrorMsg(w, r, err.Error())
+		res.DecodeError(w, r, err)
 		return
 	}
 
 	if validationErrors := a.app.Validator.Validate(body); len(validationErrors) != 0 {
-		res.WithErrors(w, r, validationErrors)
-
+		res.ValidateErrors(w, r, validationErrors)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 		res.InternalServerError(w, r)
 	}
 
-	account := &model.Account{
+	user := &model.User{
 		LastLogin: time.Now(),
 		Email:     body.Email,
 		Active:    true,
@@ -86,13 +86,19 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 		Password:  string(hashPassword),
 	}
 
-	if _, err := a.accountRepo.Create(r.Context(), account); err != nil {
-		zap.L().Error("cannot create account", zap.Error(err))
+	_, createError := a.userRepo.Create(r.Context(), user)
+	if errors.Is(createError, repo.ErrDuplicateKey) {
+		res.WithError(w, r, res.Error{Code: res.DuplicatedKey, Msg: repo.ErrDuplicateKey.Error()})
+		return
+	}
+
+	if createError != nil {
+		zap.L().Error("cannot create user", zap.Error(err))
 		res.InternalServerError(w, r)
 		return
 	}
 
-	res.Created(w, r)
+	res.Created(r)
 }
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
@@ -103,53 +109,53 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	var body request
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
-		res.WithErrorMsg(w, r, err.Error())
+		res.DecodeError(w, r, err)
 		return
 	}
 
 	if validationErrors := a.app.Validator.Validate(body); validationErrors != nil {
-		res.WithErrors(w, r, validationErrors)
+		res.ValidateErrors(w, r, validationErrors)
 		return
 	}
 
-	account, err := a.accountRepo.GetByEmail(r.Context(), body.Email)
+	user, err := a.userRepo.GetByEmail(r.Context(), body.Email)
 	if err != nil {
-		zap.L().Error("cannot get account by email", zap.Error(err))
+		zap.L().Error("cannot get user by email", zap.Error(err))
 		res.InternalServerError(w, r)
 		return
 	}
 
-	if !account.IsValidPassword(body.Password) {
+	if !user.IsValidPassword(body.Password) {
 		res.Unauthorized(w, r)
 		return
 	}
 
-	if !account.CanLogin() {
+	if !user.CanLogin() {
 		res.Unauthorized(w, r)
 		return
 	}
 
-	refreshClaims := jwt.RefreshClaims{ID: account.ID}
-	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(account.Claims(), refreshClaims)
+	refreshClaims := jwt.RefreshClaims{ID: user.ID}
+	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(user.Claims(), refreshClaims)
 	if err != nil {
 		res.InternalServerError(w, r)
 		return
 	}
 
-	account.LastLogin = time.Now()
-	if err := a.accountRepo.Update(r.Context(), account); err != nil {
+	user.LastLogin = time.Now()
+	if err := a.userRepo.Update(r.Context(), user); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
 		res.InternalServerError(w, r)
 		return
 	}
 
-	account.AccessToken = accessToken
-	account.RefreshToken = refreshToken
+	user.AccessToken = accessToken
+	user.RefreshToken = refreshToken
 
-	res.WithItem(w, r, account)
+	res.WithItem(w, r, user)
 }
 
-func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 		Password        string `json:"password" validate:"required,min=8"`
 		NewPassword     string `json:"new_password" validate:"required,min=8"`
@@ -158,7 +164,7 @@ func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
 
 	body := request{}
 	if err := render.DecodeJSON(r.Body, &body); err != nil {
-		res.WithErrorMsg(w, r, err.Error())
+		res.DecodeError(w, r, err)
 		return
 	}
 
@@ -169,15 +175,15 @@ func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accessClaims := jwt.ClaimsFromCtx(r.Context())
-	account, err := a.accountRepo.GetByID(r.Context(), accessClaims.ID)
+	user, err := a.userRepo.GetByID(r.Context(), accessClaims.ID)
 	if err != nil {
-		zap.L().Error("cannot get account by ID", zap.Error(err))
+		zap.L().Error("cannot get user by ID", zap.Error(err))
 		res.InternalServerError(w, r)
 
 		return
 	}
 
-	if !account.IsValidPassword(body.Password) {
+	if !user.IsValidPassword(body.Password) {
 		res.Unauthorized(w, r)
 	}
 
@@ -187,14 +193,14 @@ func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
 		res.InternalServerError(w, r)
 	}
 
-	account.Password = string(hashPassword)
-	if err := a.accountRepo.Update(r.Context(), account); err != nil {
+	user.Password = string(hashPassword)
+	if err := a.userRepo.Update(r.Context(), user); err != nil {
 		zap.L().Error("cannot update password", zap.Error(err))
 		res.InternalServerError(w, r)
 		return
 	}
 
-	res.NoContent(w, r)
+	res.Updated(w, r)
 }
 
 func (a *Auth) logout(w http.ResponseWriter, r *http.Request) {
@@ -208,39 +214,39 @@ func (a *Auth) logout(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, c)
 
-	render.JSON(w, r, http.NoBody)
+	res.NoData(w, r, http.StatusOK)
 }
 
 func (a *Auth) refreshToken(w http.ResponseWriter, r *http.Request) {
 	refreshClaims := jwt.RefreshClaimsFromCtx(r.Context())
 
-	account, err := a.accountRepo.GetByID(r.Context(), refreshClaims.ID)
+	user, err := a.userRepo.GetByID(r.Context(), refreshClaims.ID)
 	if err != nil {
-		zap.L().Error("cannot get account by email", zap.Error(err))
+		zap.L().Error("cannot get user by email", zap.Error(err))
 		res.InternalServerError(w, r)
 		return
 	}
 
-	if !account.CanLogin() {
+	if !user.CanLogin() {
 		res.Unauthorized(w, r)
 		return
 	}
 
-	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(account.Claims(), refreshClaims)
+	accessToken, refreshToken, err := a.authJWT.CreateTokenPair(user.Claims(), refreshClaims)
 	if err != nil {
 		res.InternalServerError(w, r)
 		return
 	}
 
-	account.LastLogin = time.Now()
-	if err := a.accountRepo.Update(r.Context(), account); err != nil {
+	user.LastLogin = time.Now()
+	if err := a.userRepo.Update(r.Context(), user); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
 		res.InternalServerError(w, r)
 		return
 	}
 
-	account.AccessToken = accessToken
-	account.RefreshToken = refreshToken
+	user.AccessToken = accessToken
+	user.RefreshToken = refreshToken
 
-	res.WithItem(w, r, account)
+	res.WithItem(w, r, user)
 }

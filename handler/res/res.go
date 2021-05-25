@@ -7,9 +7,9 @@ import (
 )
 
 type Response struct {
-	Message string `json:"message,omitempty"`
-	Data    *Data  `json:"data,omitempty"`
-	Error   *Error `json:"error,omitempty"`
+	Msg    string  `json:"message,omitempty"`
+	Data   *Data   `json:"data,omitempty"`
+	Errors *Errors `json:"errors,omitempty"`
 }
 
 type Data struct {
@@ -27,16 +27,11 @@ type Item interface{}
 type Items []Item
 
 type Error struct {
-	Code    int         `json:"code,omitempty"`
-	Message string      `json:"message,omitempty"`
-	Errors  []ErrorItem `json:"errors,omitempty"`
+	Code  string `json:"code,omitempty"`
+	Field string `json:"field,omitempty"`
+	Msg   string `json:"message,omitempty"`
 }
-
-type ErrorItem struct {
-	Code    int    `json:"code,omitempty"`
-	Field   string `json:"field,omitempty"`
-	Message string `json:"message,omitempty"`
-}
+type Errors []Error
 
 func WithItems(w http.ResponseWriter, r *http.Request, items Items) {
 	render.Status(r, http.StatusOK)
@@ -56,37 +51,18 @@ func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
 	})
 }
 
-func WithErrors(w http.ResponseWriter, r *http.Request, errors []ErrorItem) {
-	render.Status(r, http.StatusBadRequest)
-	render.JSON(w, r, &Response{
-		Error: &Error{
-			Errors: errors,
-		},
-	})
-}
-
-func WithErrorMsg(w http.ResponseWriter, r *http.Request, errorMsg string) {
-	render.Status(r, http.StatusBadRequest)
-	render.JSON(w, r, &Response{
-		Error: &Error{
-			Message: errorMsg,
-		},
-	})
-}
-
 func NoData(w http.ResponseWriter, r *http.Request, httpStatus int) {
 	render.Status(r, httpStatus)
-	render.JSON(w, r, &Response{
-		Message: http.StatusText(httpStatus),
-	})
+	render.NoContent(w, r)
 }
 
-func Created(w http.ResponseWriter, r *http.Request) {
-	NoData(w, r, http.StatusCreated)
+func Created(r *http.Request) {
+	render.Status(r, http.StatusCreated)
 }
 
-func NoContent(w http.ResponseWriter, r *http.Request) {
-	NoData(w, r, http.StatusNoContent)
+func Updated(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNoContent)
+	render.NoContent(w, r)
 }
 
 func Unauthorized(w http.ResponseWriter, r *http.Request) {
@@ -95,4 +71,32 @@ func Unauthorized(w http.ResponseWriter, r *http.Request) {
 
 func InternalServerError(w http.ResponseWriter, r *http.Request) {
 	NoData(w, r, http.StatusInternalServerError)
+}
+
+func WithError(w http.ResponseWriter, r *http.Request, err Error) {
+	render.Status(r, http.StatusBadRequest)
+	render.JSON(w, r, &Response{
+		Errors: &Errors{err},
+	})
+}
+
+func WithErrors(w http.ResponseWriter, r *http.Request, errors Errors) {
+	render.Status(r, http.StatusBadRequest)
+	render.JSON(w, r, &Response{
+		Errors: &errors,
+	})
+}
+
+func DecodeError(w http.ResponseWriter, r *http.Request, err error) {
+	render.Status(r, http.StatusBadRequest)
+	render.JSON(w, r, &Response{
+		Errors: &Errors{{Msg: err.Error()}},
+	})
+}
+
+func ValidateErrors(w http.ResponseWriter, r *http.Request, errors Errors) {
+	render.Status(r, http.StatusBadRequest)
+	render.JSON(w, r, &Response{
+		Errors: &errors,
+	})
 }

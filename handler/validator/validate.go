@@ -17,7 +17,7 @@ func New(validator *validator.Validate) *Validator {
 	}
 }
 
-func (v Validator) Validate(input interface{}) []res.ErrorItem {
+func (v Validator) Validate(input interface{}) res.Errors {
 	err := v.validator.Struct(input)
 	if err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -26,11 +26,11 @@ func (v Validator) Validate(input interface{}) []res.ErrorItem {
 			return nil
 		}
 
-		errItems := make([]res.ErrorItem, 0)
+		errItems := make(res.Errors, 0)
 		for _, err := range err.(validator.ValidationErrors) {
-			errItems = append(errItems, res.ErrorItem{
-				Field:   err.Field(),
-				Message: errMsgByTag(err),
+			errItems = append(errItems, res.Error{
+				Field: err.Field(),
+				Msg:   errMsgByTag(err),
 			})
 		}
 
