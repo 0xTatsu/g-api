@@ -16,16 +16,6 @@ const (
 	ctxRefreshClaimsKey = "ctxRefreshClaimsKey"
 )
 
-// ClaimsFromCtx retrieves the parsed AccessClaims from request context.
-func ClaimsFromCtx(ctx context.Context) AccessClaims {
-	return ctx.Value(ctxAccessClaimsKey).(AccessClaims)
-}
-
-// RefreshClaimsFromCtx retrieves the parsed refresh token from context.
-func RefreshClaimsFromCtx(ctx context.Context) RefreshClaims {
-	return ctx.Value(ctxRefreshClaimsKey).(RefreshClaims)
-}
-
 func Authenticator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, claims, err := jwtauth.FromContext(r.Context())

@@ -27,28 +27,28 @@ func NewUser(db *gorm.DB) *User {
 	return &User{db: db}
 }
 
-func (a *User) GetByID(ctx context.Context, id uint) (*model.User, error) {
+func (r *User) GetByID(ctx context.Context, id uint) (*model.User, error) {
 	user := &model.User{ID: id}
-	err := a.db.WithContext(ctx).Where(user).First(user).Error
+	err := r.db.WithContext(ctx).Where(user).First(user).Error
 
 	return user, err
 }
 
-func (a *User) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+func (r *User) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	user := &model.User{Email: email}
-	err := a.db.WithContext(ctx).Where(user).First(user).Error
+	err := r.db.WithContext(ctx).Where(user).First(user).Error
 
 	return user, err
 }
 
-func (a *User) Update(ctx context.Context, user *model.User) error {
-	err := a.db.WithContext(ctx).Model(&user).Updates(user).Error
+func (r *User) Update(ctx context.Context, user *model.User) error {
+	err := r.db.WithContext(ctx).Model(&user).Updates(user).Error
 
 	return err
 }
 
-func (a *User) Create(ctx context.Context, user *model.User) (*model.User, error) {
-	err := a.db.WithContext(ctx).Create(&user).Error
+func (r *User) Create(ctx context.Context, user *model.User) (*model.User, error) {
+	err := r.db.WithContext(ctx).Create(&user).Error
 
 	var pgErr *pgconn.PgError
 	if ok := errors.As(err, &pgErr); ok && pgErr.Code == "23505" {

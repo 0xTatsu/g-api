@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -10,6 +11,16 @@ import (
 
 	"github.com/0xTatsu/g-api/config"
 )
+
+//go:generate mockery --name JWT --case snake
+type JWT interface {
+	CreateAccessToken(c AccessClaims) (string, error)
+	CreateRefreshToken(c RefreshClaims) (string, error)
+	CreateTokenPair(accessClaims AccessClaims, refreshClaims RefreshClaims) (string, string, error)
+	Verifier() func(http.Handler) http.Handler
+	ClaimsFromCtx(ctx context.Context) AccessClaims
+	RefreshClaimsFromCtx(ctx context.Context) RefreshClaims
+}
 
 type AuthJWT struct {
 	cfg     *config.Configuration
@@ -63,6 +74,16 @@ func (a *AuthJWT) CreateTokenPair(accessClaims AccessClaims, refreshClaims Refre
 // Verifier http middleware will verify a jwt string from a http request.
 func (a *AuthJWT) Verifier() func(http.Handler) http.Handler {
 	return jwtauth.Verifier(a.jwtAuth)
+}
+
+// ClaimsFromCtx retrieves the parsed AccessClaims from request context.
+func (a *AuthJWT) ClaimsFromCtx(ctx context.Context) AccessClaims {
+	return ctx.Value(ctxAccessClaimsKey).(AccessClaims)
+}
+
+// RefreshClaimsFromCtx retrieves the parsed refresh token from context.
+func (a *AuthJWT) RefreshClaimsFromCtx(ctx context.Context) RefreshClaims {
+	return ctx.Value(ctxRefreshClaimsKey).(RefreshClaims)
 }
 
 func ToMapStringInterface(c interface{}) map[string]interface{} {
