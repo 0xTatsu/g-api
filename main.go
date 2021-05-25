@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -33,10 +34,11 @@ func main() {
 	undoReplaceGlobalLog := zap.ReplaceGlobals(logger)
 	defer undoReplaceGlobalLog()
 
-	var app model.App
-
-	app.Cfg = config.New()
-	app.Validator = appValidator.New(validator.New())
+	envCfg := config.New()
+	app := model.App{
+		Cfg:       envCfg,
+		Validator: appValidator.New(validator.New()),
+	}
 
 	db := pg.Connect(&pg.Options{Addr: app.Cfg.DB.Addr, Database: app.Cfg.DB.Name, User: app.Cfg.DB.User, Password: app.Cfg.DB.Pass})
 
@@ -68,7 +70,12 @@ func main() {
 		})
 	})
 
-	if err := http.ListenAndServe(app.Cfg.Server.Address, r); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = envCfg.Server.Port
+	}
+
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("cannot start server: %s", err)
 	}
 }
