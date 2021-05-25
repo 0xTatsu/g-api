@@ -21,14 +21,14 @@ func NewJWT(
 ) *AuthJWT {
 	return &AuthJWT{
 		cfg:     cfg,
-		jwtAuth: jwtauth.New("HS256", []byte(cfg.JWT.Secret), nil),
+		jwtAuth: jwtauth.New("HS256", []byte(cfg.JwtSecret), nil),
 	}
 }
 
 // CreateAccessToken returns an access token for provided account claims.
 func (a *AuthJWT) CreateAccessToken(c AccessClaims) (string, error) {
 	c.IssuedAt = time.Now().Unix()
-	c.ExpiresAt = time.Now().Add(time.Hour * time.Duration(a.cfg.JWT.ExpiryInHour)).Unix()
+	c.ExpiresAt = time.Now().Add(time.Hour * time.Duration(a.cfg.JwtExpiryInHour)).Unix()
 
 	_, tokenString, err := a.jwtAuth.Encode(ToMapStringInterface(c))
 
@@ -38,7 +38,7 @@ func (a *AuthJWT) CreateAccessToken(c AccessClaims) (string, error) {
 // CreateRefreshToken returns a refresh token for provided token Claims.
 func (a *AuthJWT) CreateRefreshToken(c RefreshClaims) (string, error) {
 	c.IssuedAt = time.Now().Unix()
-	c.ExpiresAt = time.Now().Add(time.Hour * time.Duration(a.cfg.JWT.RefreshExpiryInHour)).Unix()
+	c.ExpiresAt = time.Now().Add(time.Hour * time.Duration(a.cfg.JwtRefreshExpiryInHour)).Unix()
 
 	_, tokenString, err := a.jwtAuth.Encode(ToMapStringInterface(c))
 

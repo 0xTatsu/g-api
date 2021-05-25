@@ -1,3 +1,4 @@
+// +heroku goVersion go1.16
 module github.com/0xTatsu/mvtn-api
 
 go 1.16

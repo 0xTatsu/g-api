@@ -25,22 +25,20 @@ import (
 )
 
 func main() {
-	// init logger
-	logger, errZapLog := zap.NewDevelopment()
-	if errZapLog != nil {
-		log.Fatalf("failed to init ZAP log: %s", errZapLog)
-	}
-
-	undoReplaceGlobalLog := zap.ReplaceGlobals(logger)
+	_, undoReplaceGlobalLog := initLogger()
 	defer undoReplaceGlobalLog()
 
-	envCfg := config.New()
+	envCfg, err := config.New()
+	if err != nil {
+		log.Fatal("cannot load config:", err)
+	}
+
 	app := model.App{
 		Cfg:       envCfg,
 		Validator: appValidator.New(validator.New()),
 	}
 
-	db := pg.Connect(&pg.Options{Addr: app.Cfg.DB.Addr, Database: app.Cfg.DB.Name, User: app.Cfg.DB.User, Password: app.Cfg.DB.Pass})
+	db := initDB(envCfg.DbUrl)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -48,7 +46,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Heartbeat("/ping"))
-	r.Use(middleware.Timeout(time.Second * time.Duration(app.Cfg.Server.Timeout)))
+	r.Use(middleware.Timeout(time.Second * time.Duration(app.Cfg.ServerTimeout)))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	authJWT := jwt.NewJWT(app.Cfg)
@@ -72,10 +70,30 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = envCfg.Server.Port
+		port = envCfg.ServerPort
 	}
 
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("cannot start server: %s", err)
 	}
+}
+
+func initLogger() (*zap.Logger, func()) {
+	logger, errZapLog := zap.NewDevelopment()
+	if errZapLog != nil {
+		log.Fatalf("cannot init ZAP log: %s", errZapLog)
+	}
+
+	undoReplaceGlobalLog := zap.ReplaceGlobals(logger)
+
+	return logger, undoReplaceGlobalLog
+}
+
+func initDB(dbURL string) *pg.DB {
+	opt, err := pg.ParseURL(dbURL)
+	if err != nil {
+		log.Fatalf("cannot connect db: %s", err)
+	}
+
+	return pg.Connect(opt)
 }

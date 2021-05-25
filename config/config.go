@@ -1,52 +1,35 @@
 package config
 
 import (
-	"log"
-
 	"github.com/spf13/viper"
 )
 
-func New() *Configuration {
-	viper.SetConfigType("yaml")
-	viper.SetConfigName("env")
-	viper.AddConfigPath(".")
+func New() (*Configuration, error) {
+	var cfg Configuration
+
+	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("There is no config file, reading from env variables: %s", err)
+		return &cfg, err
 	}
 
-	var cfg Configuration
-	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("unable to decode into struct, %s", err)
-	}
+	err := viper.Unmarshal(&cfg)
 
-	return &cfg
+	return &cfg, err
 }
 
-// Configuration holds data necessary for configuring application
 type Configuration struct {
-	Server *Server   `mapstructure:"server,omitempty"`
-	DB     *Database `mapstructure:"database,omitempty"`
-	JWT    *JWT      `mapstructure:"jwt,omitempty"`
-}
+	// JWT
+	JwtSecret              string `mapstructure:"JWT_SECRET,omitempty"`
+	JwtHttpCookieKey       string `mapstructure:"JWT_HTTP_COOKIE_KEY,omitempty"`
+	JwtExpiryInHour        int    `mapstructure:"JWT_EXPIRY_IN_HOUR,omitempty"`
+	JwtRefreshExpiryInHour int    `mapstructure:"JWT_REFRESH_EXPIRY_IN_HOUR,omitempty"`
 
-type Database struct {
-	User string `mapstructure:"db_user,omitempty"`
-	Pass string `mapstructure:"db_pass,omitempty"`
-	Addr string `mapstructure:"db_addr,omitempty"`
-	Name string `mapstructure:"db_name,omitempty"`
-}
+	// Database
+	DbUrl string `mapstructure:"DATABASE_URL,omitempty"`
 
-type Server struct {
-	Port    string `mapstructure:"port,omitempty"`
-	Address string `mapstructure:"address,omitempty"`
-	Timeout int    `mapstructure:"timeout_seconds,omitempty"`
-}
-
-type JWT struct {
-	Secret              string `mapstructure:"jwt_secret,omitempty"`
-	HttpCookieKey       string `mapstructure:"jwt_http_cookie_key,omitempty"`
-	ExpiryInHour        int    `mapstructure:"jwt_expiry_in_hour,omitempty"`
-	RefreshExpiryInHour int    `mapstructure:"jwt_refresh_expiry_in_hour,omitempty"`
+	// Server
+	ServerTimeout int    `mapstructure:"SERVER_TIMEOUT_SECONDS,omitempty"`
+	ServerPort    string `mapstructure:"SERVER_PORT,omitempty"`
 }

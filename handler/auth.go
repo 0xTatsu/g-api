@@ -199,7 +199,7 @@ func (a *Auth) forgetPassword(w http.ResponseWriter, r *http.Request) {
 
 func (a *Auth) logout(w http.ResponseWriter, r *http.Request) {
 	c := &http.Cookie{
-		Name:     a.app.Cfg.JWT.HttpCookieKey,
+		Name:     a.app.Cfg.JwtHttpCookieKey,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
