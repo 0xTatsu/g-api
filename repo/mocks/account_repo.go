@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	model "github.com/0xTatsu/mvtn-api/model"
+	model "github.com/0xTatsu/g-api/model"
 	mock "github.com/stretchr/testify/mock"
 )
 

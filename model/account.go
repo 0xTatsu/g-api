@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/0xTatsu/mvtn-api/jwt"
+	"github.com/0xTatsu/g-api/jwt"
 )
 
 const (

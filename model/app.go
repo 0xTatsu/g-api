@@ -3,9 +3,9 @@ package model
 import (
 	"github.com/go-pg/pg/v10"
 
-	"github.com/0xTatsu/mvtn-api/handler/res"
+	"github.com/0xTatsu/g-api/handler/res"
 
-	"github.com/0xTatsu/mvtn-api/config"
+	"github.com/0xTatsu/g-api/config"
 )
 
 type Validator interface {

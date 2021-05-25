@@ -4,7 +4,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/handler/res"
+	"github.com/0xTatsu/g-api/handler/res"
 )
 
 type Validator struct {

@@ -1,5 +1,5 @@
 // +heroku goVersion go1.16
-module github.com/0xTatsu/mvtn-api
+module github.com/0xTatsu/g-api
 
 go 1.16
 

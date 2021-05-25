@@ -1,1 +1,1 @@
-web: g-api
+web: bin/g-api

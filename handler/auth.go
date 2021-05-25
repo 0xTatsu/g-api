@@ -9,10 +9,10 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/0xTatsu/mvtn-api/handler/res"
-	"github.com/0xTatsu/mvtn-api/jwt"
-	"github.com/0xTatsu/mvtn-api/model"
-	"github.com/0xTatsu/mvtn-api/repo"
+	"github.com/0xTatsu/g-api/handler/res"
+	"github.com/0xTatsu/g-api/jwt"
+	"github.com/0xTatsu/g-api/model"
+	"github.com/0xTatsu/g-api/repo"
 )
 
 type Auth struct {

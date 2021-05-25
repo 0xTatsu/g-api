@@ -15,13 +15,13 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/handler"
-	"github.com/0xTatsu/mvtn-api/jwt"
+	"github.com/0xTatsu/g-api/handler"
+	"github.com/0xTatsu/g-api/jwt"
 
-	"github.com/0xTatsu/mvtn-api/config"
-	appValidator "github.com/0xTatsu/mvtn-api/handler/validator"
-	"github.com/0xTatsu/mvtn-api/model"
-	"github.com/0xTatsu/mvtn-api/repo"
+	"github.com/0xTatsu/g-api/config"
+	appValidator "github.com/0xTatsu/g-api/handler/validator"
+	"github.com/0xTatsu/g-api/model"
+	"github.com/0xTatsu/g-api/repo"
 )
 
 func main() {

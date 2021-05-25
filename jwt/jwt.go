@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/config"
+	"github.com/0xTatsu/g-api/config"
 )
 
 type AuthJWT struct {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 
-	"github.com/0xTatsu/mvtn-api/model"
+	"github.com/0xTatsu/g-api/model"
 )
 
 //go:generate mockery --name AccountRepo --case snake

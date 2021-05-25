@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/0xTatsu/mvtn-api/handler/res"
+	"github.com/0xTatsu/g-api/handler/res"
 )
 
 var ErrTest = errors.New("mock error")

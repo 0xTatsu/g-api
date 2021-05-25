@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/0xTatsu/mvtn-api/config"
-	"github.com/0xTatsu/mvtn-api/handler"
-	appValidator "github.com/0xTatsu/mvtn-api/handler/validator"
-	"github.com/0xTatsu/mvtn-api/jwt"
-	"github.com/0xTatsu/mvtn-api/model"
-	"github.com/0xTatsu/mvtn-api/repo/mocks"
-	"github.com/0xTatsu/mvtn-api/test"
+	"github.com/0xTatsu/g-api/config"
+	"github.com/0xTatsu/g-api/handler"
+	appValidator "github.com/0xTatsu/g-api/handler/validator"
+	"github.com/0xTatsu/g-api/jwt"
+	"github.com/0xTatsu/g-api/model"
+	"github.com/0xTatsu/g-api/repo/mocks"
+	"github.com/0xTatsu/g-api/test"
 )
 
 var app = model.App{

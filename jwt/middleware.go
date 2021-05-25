@@ -8,7 +8,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/mvtn-api/handler/res"
+	"github.com/0xTatsu/g-api/handler/res"
 )
 
 const (
