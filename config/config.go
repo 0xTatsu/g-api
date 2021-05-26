@@ -4,8 +4,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func New() (*Configuration, error) {
-	var cfg Configuration
+func New() (*Env, error) {
+	var cfg Env
 
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
@@ -19,16 +19,12 @@ func New() (*Configuration, error) {
 	return &cfg, err
 }
 
-type App struct {
+type Env struct {
 	// JWT
 	JwtSecret              string `mapstructure:"JWT_SECRET,omitempty"`
 	JwtHttpCookieKey       string `mapstructure:"JWT_HTTP_COOKIE_KEY,omitempty"`
 	JwtExpiryInHour        int    `mapstructure:"JWT_EXPIRY_IN_HOUR,omitempty"`
 	JwtRefreshExpiryInHour int    `mapstructure:"JWT_REFRESH_EXPIRY_IN_HOUR,omitempty"`
-}
-
-type Configuration struct {
-	App
 
 	// Database
 	DbUrl string `mapstructure:"DATABASE_DNS,omitempty"`

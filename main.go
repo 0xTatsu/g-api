@@ -34,7 +34,7 @@ func main() {
 	}
 
 	appEnv := handler.Env{
-		Cfg:       envCfg,
+		Cfg:       *envCfg,
 		Validator: appValidator.New(validator.New()),
 	}
 

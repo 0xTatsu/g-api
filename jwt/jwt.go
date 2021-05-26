@@ -12,23 +12,13 @@ import (
 	"github.com/0xTatsu/g-api/config"
 )
 
-//go:generate mockery --name JWT --case snake
-type JWT interface {
-	CreateAccessToken(c AccessClaims) (string, error)
-	CreateRefreshToken(c RefreshClaims) (string, error)
-	CreateTokenPair(accessClaims AccessClaims, refreshClaims RefreshClaims) (string, string, error)
-	Verifier() func(http.Handler) http.Handler
-	ClaimsFromCtx(ctx context.Context) AccessClaims
-	RefreshClaimsFromCtx(ctx context.Context) RefreshClaims
-}
-
 type AuthJWT struct {
-	cfg     *config.Configuration
+	cfg     *config.Env
 	jwtAuth *jwtauth.JWTAuth
 }
 
 func NewJWT(
-	cfg *config.Configuration,
+	cfg *config.Env,
 ) *AuthJWT {
 	return &AuthJWT{
 		cfg:     cfg,

@@ -8,10 +8,9 @@ import (
 )
 
 type Response struct {
-	Code   string  `json:"code,omitempty"`
-	Msg    string  `json:"message,omitempty"`
-	Data   *Data   `json:"data,omitempty"`
-	Errors *Errors `json:"errors,omitempty"`
+	Msg   string `json:"message,omitempty"`
+	Data  *Data  `json:"data,omitempty"`
+	Error *Error `json:"error,omitempty"`
 }
 
 type Data struct {
@@ -25,16 +24,28 @@ type Data struct {
 	StartIndex   int `json:"startIndex,omitempty"`
 }
 
-type Items []Item
-type Item interface{}
+type (
+	Items []Item
+	Item  interface{}
+)
 
 type Error struct {
-	HttpCode int    `json:"-"`
-	Code     string `json:"code,omitempty"`
-	Field    string `json:"field,omitempty"`
-	Msg      string `json:"message,omitempty"`
+	HttpCode int     `json:"-"`
+	Code     string  `json:"code,omitempty"`
+	Msg      string  `json:"message,omitempty"`
+	Errors   *Errors `json:"errors,omitempty"`
 }
-type Errors []Error
+
+func (e Error) Error() string {
+	return ""
+}
+
+type ErrorItem struct {
+	Code  string `json:"code,omitempty"`
+	Field string `json:"field,omitempty"`
+	Msg   string `json:"message,omitempty"`
+}
+type Errors []ErrorItem
 
 func WithErrMsg(w http.ResponseWriter, r *http.Request, code int, errMsg string) {
 	render.Status(r, code)
@@ -46,24 +57,25 @@ func WithErrMsg(w http.ResponseWriter, r *http.Request, code int, errMsg string)
 func WithError(w http.ResponseWriter, r *http.Request, code int, err Error) {
 	render.Status(r, code)
 	render.JSON(w, r, &Response{
-		Code: err.Code,
-		Msg:  err.Msg,
-	})
-}
-
-func WithErrors(w http.ResponseWriter, r *http.Request, code int, errors Errors) {
-	render.Status(r, code)
-	render.JSON(w, r, &Response{
-		Errors: &errors,
+		Error: &err,
 	})
 }
 
 func WithData(w http.ResponseWriter, r *http.Request, data interface{}) {
-	if reflect.TypeOf(data).Kind() == reflect.Slice {
-		WithItems(w, r, data.(Items))
-	} else {
+	vData := reflect.ValueOf(data)
+	if vData.Kind() != reflect.Slice {
 		WithItem(w, r, data)
+		return
 	}
+
+	// interfaces to []struct
+	items := make(Items, vData.Len())
+	for i := 0; i < vData.Len(); i++ {
+		temp := vData.Index(i).Interface()
+		items[i] = temp.(Item)
+	}
+
+	WithItems(w, r, items)
 }
 
 func WithItems(w http.ResponseWriter, r *http.Request, items Items) {

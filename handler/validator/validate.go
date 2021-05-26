@@ -17,26 +17,31 @@ func New(validator *validator.Validate) *Validator {
 	}
 }
 
-func (v Validator) Validate(input interface{}) res.Errors {
+func (v Validator) Validate(input interface{}) res.Error {
 	err := v.validator.Struct(input)
 	if err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); ok {
 			zap.L().Error(err.Error())
 
-			return nil
+			return res.Error{}
 		}
 
-		errors := res.Errors{}
+		e := res.Errors{}
 		for _, err := range err.(validator.ValidationErrors) {
-			errors = append(errors, res.Error{
+			e = append(e, res.ErrorItem{
 				Field: err.Field(),
 				Msg:   errMsgByTag(err),
 			})
 		}
 
-		return errors
+		return res.Error{
+			Code:   res.CodeValidationFailed,
+			Msg:    "Validation failed",
+			Errors: &e,
+		}
 	}
-	return nil
+
+	return res.Error{}
 }
 
 func errMsgByTag(err validator.FieldError) string {

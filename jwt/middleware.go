@@ -7,8 +7,6 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/lestrrat-go/jwx/jwt"
 	"go.uber.org/zap"
-
-	"github.com/0xTatsu/g-api/handler/res"
 )
 
 const (
@@ -30,7 +28,7 @@ func Authenticator(next http.Handler) http.Handler {
 		}
 
 		if err := jwt.Validate(token); err != nil {
-			res.Unauthorized(w, r)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 

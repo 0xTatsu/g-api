@@ -1,6 +1,7 @@
 package res
 
 const (
-	DuplicatedKey    = "DUPLICATED_KEY"
-	IncorrectOldPass = "INCORRECT_OLD_PASSWORD"
+	CodeDuplicatedKey    = "DUPLICATED_KEY"
+	CodeIncorrectOldPass = "INCORRECT_OLD_PASSWORD"
+	CodeValidationFailed = "VALIDATION_FAILED"
 )

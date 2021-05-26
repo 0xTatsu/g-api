@@ -4,6 +4,7 @@ package mocks
 
 import (
 	context "context"
+
 	http "net/http"
 
 	jwt "github.com/0xTatsu/g-api/jwt"

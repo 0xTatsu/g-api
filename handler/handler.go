@@ -1,20 +1,23 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/0xTatsu/g-api/config"
+	"github.com/0xTatsu/g-api/jwt"
+	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/res"
 )
 
 // Env An application-wide configuration.
 type Env struct {
-	Cfg       *config.Configuration
+	Cfg       config.Env
 	Validator Validator
 }
 
 type Handler struct {
-	H func(w http.ResponseWriter, r *http.Request) (interface{}, interface{})
+	H func(w http.ResponseWriter, r *http.Request) (interface{}, error)
 }
 
 // ServeHTTP allows our Handler type to satisfy http.Handler.
@@ -22,10 +25,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	data, err := h.H(w, r)
 	if err != nil {
 		switch err.(type) {
-		case error:
-			res.WithErrMsg(w, r, http.StatusBadRequest, err.(error).Error())
-			return
-
 		case res.Error:
 			val := err.(res.Error)
 			httpStatusCode := http.StatusBadRequest
@@ -33,7 +32,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				httpStatusCode = val.HttpCode
 			}
 
-			if val.Code == "" && val.Msg == "" {
+			if val.Code == "" && val.Msg == "" && val.Errors == nil {
 				res.WithNoContent(w, r, httpStatusCode)
 				return
 			}
@@ -41,15 +40,10 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			res.WithError(w, r, httpStatusCode, val)
 			return
 
-		case res.Errors:
-			res.WithErrors(w, r, http.StatusBadRequest, err.(res.Errors))
+		case error:
+			res.WithErrMsg(w, r, http.StatusBadRequest, err.(error).Error())
 			return
 
-		// case Error:
-		// 	// We can retrieve the status here and write out a specific
-		// 	// HTTP status code.
-		// 	log.Printf("HTTP %d - %s", e.Status(), e)
-		// 	http.Error(w, e.Error(), e.Status())
 		default:
 			// Any error types we don't specifically look out for default
 			// to serving a HTTP 500
@@ -70,5 +64,23 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type Validator interface {
-	Validate(input interface{}) res.Errors
+	Validate(input interface{}) res.Error
+}
+
+//go:generate mockery --name JWT --case snake
+type JWT interface {
+	CreateAccessToken(c jwt.AccessClaims) (string, error)
+	CreateRefreshToken(c jwt.RefreshClaims) (string, error)
+	CreateTokenPair(accessClaims jwt.AccessClaims, refreshClaims jwt.RefreshClaims) (string, string, error)
+	Verifier() func(http.Handler) http.Handler
+	ClaimsFromCtx(ctx context.Context) jwt.AccessClaims
+	RefreshClaimsFromCtx(ctx context.Context) jwt.RefreshClaims
+}
+
+//go:generate mockery --name UserRepo --case snake
+type UserRepo interface {
+	GetByID(ctx context.Context, id uint) (*model.User, error)
+	GetByEmail(ctx context.Context, email string) (*model.User, error)
+	Update(ctx context.Context, user *model.User) error
+	Create(ctx context.Context, user *model.User) (*model.User, error)
 }

@@ -7,23 +7,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/0xTatsu/g-api/config"
 	"github.com/0xTatsu/g-api/handler"
+	"github.com/0xTatsu/g-api/handler/mocks"
 	appValidator "github.com/0xTatsu/g-api/handler/validator"
 	"github.com/0xTatsu/g-api/jwt"
-	jwtMocks "github.com/0xTatsu/g-api/jwt/mocks"
 	"github.com/0xTatsu/g-api/model"
-	"github.com/0xTatsu/g-api/repo/mocks"
+	"github.com/0xTatsu/g-api/res"
 	"github.com/0xTatsu/g-api/test"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/go-playground/validator/v10"
 )
 
-var app = model.App{
-	Cfg: &config.Configuration{
+var app = handler.Env{
+	Cfg: config.Env{
 		JwtSecret:              "",
 		JwtHttpCookieKey:       "token",
 		JwtExpiryInHour:        24,
@@ -32,48 +32,56 @@ var app = model.App{
 	Validator: appValidator.New(validator.New()),
 }
 
-const hashedPass = "$2a$10$/O5r9A49M0ewJjsXvoh7dOzF.OdazGXYi/qTf/b3.u6zOk0JQv4U."
+const (
+	ctxAccessClaimsKey  = "ctxAccessClaimsKey"
+	ctxRefreshClaimsKey = "ctxRefreshClaimsKey"
+	hashedPass          = "$2a$10$/O5r9A49M0ewJjsXvoh7dOzF.OdazGXYi/qTf/b3.u6zOk0JQv4U."
+)
 
 func Test_Register(t *testing.T) {
 	ctx := context.TODO()
-	authJWT := jwt.NewJWT(app.Cfg)
+	authJWT := jwt.NewJWT(&app.Cfg)
 
 	t.Run("if request validation fails, return errors", func(t *testing.T) {
-		res := httptest.NewRecorder()
-		var body = []byte(`{}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		body := []byte(`{}`)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Register(res, req)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Register(w, r)
 
-		assert.Equal(t, http.StatusBadRequest, res.Code)
-		errs := test.Body2Errors(t, res.Body)
-		assert.Len(t, errs, 2)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		errs := err.(res.Error)
+		assert.Len(t, *errs.Errors, 2)
+		assert.Equal(t, errs.Code, res.CodeValidationFailed)
+
 		userRepo.AssertNotCalled(t, "Create")
 	})
 
 	t.Run("if creating user fails, return error", func(t *testing.T) {
-		res := httptest.NewRecorder()
-		var body = []byte(`{"email":"abc@gmail.com", "password":"12345678", "confirm_password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		body := []byte(`{"email":"abc@gmail.com", "password":"12345678", "confirm_password":"12345678"}`)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("Create", ctx, mock.Anything).Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Register(res, req)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Register(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		errs := err.(res.Error)
+		assert.Nil(t, errs.Errors)
+		assert.Equal(t, errs.HttpCode, http.StatusInternalServerError)
 
-		assert.Equal(t, http.StatusInternalServerError, res.Code)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if creating user succeeds, status will be 201", func(t *testing.T) {
-		res := httptest.NewRecorder()
-		var body = []byte(`{"email":"abc@gmail.com", "password":"12345678", "confirm_password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		body := []byte(`{"email":"abc@gmail.com", "password":"12345678", "confirm_password":"12345678"}`)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("Create", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -85,85 +93,89 @@ func Test_Register(t *testing.T) {
 				assert.NotEmpty(t, actualData.Password)
 			}
 		}).Return(nil, nil)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Register(res, req)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Register(w, r)
 
-		assert.Equal(t, http.StatusCreated, res.Code)
+		assert.Nil(t, err)
+		assert.Equal(t, data, http.StatusCreated)
+
 		userRepo.AssertExpectations(t)
 	})
 }
 
 func Test_Login(t *testing.T) {
 	ctx := context.TODO()
-	authJWT := jwt.NewJWT(app.Cfg)
+	authJWT := jwt.NewJWT(&app.Cfg)
 
 	t.Run("if request validation fails, return errors", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@", "password":""}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
-		assert.Equal(t, http.StatusBadRequest, res.Code)
-		errs := test.Body2Errors(t, res.Body)
-		assert.Len(t, errs, 2)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		errs := err.(res.Error)
+		assert.Equal(t, errs.Code, res.CodeValidationFailed)
+
 		userRepo.AssertNotCalled(t, "GetByEmail")
 	})
 
 	t.Run("if get user by email fails, return error", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@gmail.com", "password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		errs := err.(res.Error)
+		assert.Equal(t, errs.HttpCode, http.StatusInternalServerError)
 
-		assert.Equal(t, http.StatusInternalServerError, res.Code)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if password is incorrect return unauthorized", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@gmail.com", "password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		user := &model.User{Password: ""}
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
-
-		assert.Equal(t, http.StatusUnauthorized, res.Code)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		assert.Equal(t, err.(res.Error).HttpCode, http.StatusUnauthorized)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if user is not allow to login, return unauthorized", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@gmail.com", "password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		user := &model.User{Password: hashedPass, Active: false}
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
-
-		assert.Equal(t, http.StatusUnauthorized, res.Code)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		assert.Equal(t, err.(res.Error).HttpCode, http.StatusUnauthorized)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if create token pair fails, return internal error", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@gmail.com", "password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		user := &model.User{
 			Password: hashedPass,
@@ -171,18 +183,19 @@ func Test_Login(t *testing.T) {
 		}
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		assert.Equal(t, err.(res.Error).HttpCode, http.StatusInternalServerError)
 
-		assert.Equal(t, http.StatusInternalServerError, res.Code)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if update user fails, return internal error", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@gmail.com", "password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		user := &model.User{
 			ID:       1,
@@ -194,19 +207,20 @@ func Test_Login(t *testing.T) {
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(test.ErrTest)
 		app.Cfg.JwtSecret = "not so secret"
-		authJWT := jwt.NewJWT(app.Cfg)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
+		authJWT := jwt.NewJWT(&app.Cfg)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		assert.Equal(t, err.(res.Error).HttpCode, http.StatusInternalServerError)
 
-		assert.Equal(t, http.StatusInternalServerError, res.Code)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if login succeeds, return user data with tokens", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"email": "abc@gmail.com", "password":"12345678"}`)
-		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		user := &model.User{
 			ID:       1,
@@ -218,17 +232,16 @@ func Test_Login(t *testing.T) {
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(nil)
 		app.Cfg.JwtSecret = "not so secret"
-		authJWT := jwt.NewJWT(app.Cfg)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.Login(res, req)
-
-		assert.Equal(t, http.StatusOK, res.Code)
-		items := test.Body2Items(t, res.Body)
-
-		assert.NoError(t, err)
-		assert.Equal(t, float64(1), items[0]["id"])
-		assert.NotEmpty(t, items[0]["access_token"])
-		assert.NotEmpty(t, items[0]["refresh_token"])
+		authJWT := jwt.NewJWT(&app.Cfg)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.Login(w, r)
+		assert.Nil(t, err)
+		user, ok := data.(*model.User)
+		if assert.True(t, ok) {
+			assert.Equal(t, uint(1), user.ID)
+			assert.NotEmpty(t, user.AccessToken)
+			assert.NotEmpty(t, user.RefreshToken)
+		}
 
 		userRepo.AssertExpectations(t)
 	})
@@ -238,75 +251,77 @@ func Test_ChangePassword(t *testing.T) {
 	ctx := context.TODO()
 
 	t.Run("if confirm_password doesn't match, return error", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"123456789"}`)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
-		authHandler := handler.NewAuth(&app, nil, userRepo)
-		authHandler.ChangePassword(res, req)
-		assert.Equal(t, http.StatusBadRequest, res.Code)
-		errs := test.Body2Errors(t, res.Body)
-		assert.Len(t, errs, 1)
-		assert.Equal(t, errs[0].Msg, "ConfirmPassword doesn't match NewPassword")
+		authHandler := handler.NewAuth(app, nil, userRepo)
+		data, err := authHandler.ChangePassword(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		errs := err.(res.Error)
+		assert.Equal(t, errs.Code, res.CodeValidationFailed)
+
 		userRepo.AssertNotCalled(t, "GetByID")
 	})
 
-	t.Run("if get user by ID fails, return internal server error", func(t *testing.T) {
-		res := httptest.NewRecorder()
+	t.Run("if get user by ID fails, return internal error", func(t *testing.T) {
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"12345678"}`)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 		userID := uint(1)
-		authJWT := &jwtMocks.JWT{}
+		authJWT := &mocks.JWT{}
 		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(jwt.AccessClaims{ID: userID}).Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
-		authHandler.ChangePassword(res, req)
-		assert.Equal(t, http.StatusInternalServerError, res.Code)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		data, err := authHandler.ChangePassword(w, r)
+		assert.Nil(t, data)
+		assert.Equal(t, err.(res.Error).HttpCode, http.StatusInternalServerError)
+
 		authJWT.AssertExpectations(t)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if old password is incorrect, return error", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"12345678"}`)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+
 		userID := uint(1)
-		authJWT := &jwtMocks.JWT{}
+		authJWT := &mocks.JWT{}
 		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(jwt.AccessClaims{ID: userID}).Return(&model.User{Password: "123"}, nil)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
 
-		authHandler.ChangePassword(res, req)
-		assert.Equal(t, http.StatusBadRequest, res.Code)
-		errs := test.Body2Errors(t, res.Body)
-		assert.Equal(t, errs[0].Code, "INCORRECT_OLD_PASSWORD")
+		data, err := authHandler.ChangePassword(w, r)
+		assert.Nil(t, data)
+		assert.Error(t, err)
+		errs := *err.(res.Error).Errors
+		assert.Equal(t, errs[0].Code, res.CodeIncorrectOldPass)
 
 		authJWT.AssertExpectations(t)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if update succeeds, return user data with tokens", func(t *testing.T) {
-		res := httptest.NewRecorder()
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"12345678"}`)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
-		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 		userID := uint(1)
 		user := &model.User{ID: userID, Password: hashedPass, Roles: []string{model.RoleUser}}
-		authJWT := &jwtMocks.JWT{}
+		authJWT := &mocks.JWT{}
 		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(nil)
-		authHandler := handler.NewAuth(&app, authJWT, userRepo)
+		authHandler := handler.NewAuth(app, authJWT, userRepo)
 
-		authHandler.ChangePassword(res, req)
-		assert.Equal(t, http.StatusNoContent, res.Code)
+		data, err := authHandler.ChangePassword(w, r)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusNoContent, data)
 
 		authJWT.AssertExpectations(t)
 		userRepo.AssertExpectations(t)
