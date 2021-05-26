@@ -19,12 +19,16 @@ func New() (*Configuration, error) {
 	return &cfg, err
 }
 
-type Configuration struct {
+type App struct {
 	// JWT
 	JwtSecret              string `mapstructure:"JWT_SECRET,omitempty"`
 	JwtHttpCookieKey       string `mapstructure:"JWT_HTTP_COOKIE_KEY,omitempty"`
 	JwtExpiryInHour        int    `mapstructure:"JWT_EXPIRY_IN_HOUR,omitempty"`
 	JwtRefreshExpiryInHour int    `mapstructure:"JWT_REFRESH_EXPIRY_IN_HOUR,omitempty"`
+}
+
+type Configuration struct {
+	App
 
 	// Database
 	DbUrl string `mapstructure:"DATABASE_DNS,omitempty"`

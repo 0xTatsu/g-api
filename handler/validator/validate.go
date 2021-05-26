@@ -4,7 +4,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
-	"github.com/0xTatsu/g-api/handler/res"
+	"github.com/0xTatsu/g-api/res"
 )
 
 type Validator struct {
@@ -26,15 +26,15 @@ func (v Validator) Validate(input interface{}) res.Errors {
 			return nil
 		}
 
-		errItems := make(res.Errors, 0)
+		errors := res.Errors{}
 		for _, err := range err.(validator.ValidationErrors) {
-			errItems = append(errItems, res.Error{
+			errors = append(errors, res.Error{
 				Field: err.Field(),
 				Msg:   errMsgByTag(err),
 			})
 		}
 
-		return errItems
+		return errors
 	}
 	return nil
 }
