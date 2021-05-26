@@ -11,14 +11,6 @@ import (
 	"github.com/0xTatsu/g-api/model"
 )
 
-//go:generate mockery --name UserRepo --case snake
-type UserRepo interface {
-	GetByID(ctx context.Context, id uint) (*model.User, error)
-	GetByEmail(ctx context.Context, email string) (*model.User, error)
-	Update(ctx context.Context, user *model.User) error
-	Create(ctx context.Context, user *model.User) (*model.User, error)
-}
-
 type User struct {
 	db *gorm.DB
 }

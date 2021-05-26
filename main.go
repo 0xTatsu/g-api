@@ -33,8 +33,8 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
-	app := model.App{
-		Cfg:       envCfg,
+	appEnv := handler.Env{
+		Cfg:       *envCfg,
 		Validator: appValidator.New(validator.New()),
 	}
 
@@ -46,12 +46,12 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Heartbeat("/ping"))
-	r.Use(middleware.Timeout(time.Second * time.Duration(app.Cfg.ServerTimeout)))
+	r.Use(middleware.Timeout(time.Second * time.Duration(envCfg.ServerTimeout)))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
-	authJWT := jwt.NewJWT(app.Cfg)
+	authJWT := jwt.NewJWT(envCfg)
 	userRepo := repo.NewUser(db)
-	authAPI := handler.NewAuth(&app, authJWT, userRepo)
+	authAPI := handler.NewAuth(appEnv, authJWT, userRepo)
 
 	// Public routes
 	r.Mount("/auth", authAPI.Router(r))
