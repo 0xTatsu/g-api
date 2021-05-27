@@ -97,6 +97,5 @@ func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
 }
 
 func WithNoContent(w http.ResponseWriter, r *http.Request, code int) {
-	render.Status(r, code)
-	render.JSON(w, r, http.NoBody)
+	w.WriteHeader(code)
 }

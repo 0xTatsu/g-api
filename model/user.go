@@ -45,8 +45,8 @@ func (a *User) IsValidPassword(password string) bool {
 	return true
 }
 
-// Claims returns the user's claims to be signed
-func (a *User) Claims() jwt.AccessClaims {
+// AccessClaims returns the user's claims to be signed
+func (a *User) AccessClaims() jwt.AccessClaims {
 	return jwt.AccessClaims{
 		ID:    a.ID,
 		Roles: a.Roles,

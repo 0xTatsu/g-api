@@ -26,7 +26,7 @@ func Test_Handler(t *testing.T) {
 			nil,
 			res.Error{HttpCode: http.StatusInternalServerError},
 			http.StatusInternalServerError,
-			`{}`,
+			``,
 		},
 		{
 			"Error: WithError",
@@ -47,7 +47,7 @@ func Test_Handler(t *testing.T) {
 			http.StatusCreated,
 			nil,
 			http.StatusCreated,
-			`{}`,
+			``,
 		},
 		{
 			"Data: WithItem",
@@ -78,7 +78,11 @@ func Test_Handler(t *testing.T) {
 			route.ServeHTTP(w, r)
 
 			assert.Equal(t, w.Code, c.expectHttpCode)
-			assert.JSONEq(t, c.expectBody, w.Body.String())
+			if w.Body.String() != "" {
+				assert.JSONEq(t, c.expectBody, w.Body.String())
+			} else {
+				assert.Equal(t, c.expectBody, w.Body.String())
+			}
 		})
 	}
 }

@@ -16,10 +16,9 @@ import (
 	"github.com/0xTatsu/g-api/res"
 	"github.com/0xTatsu/g-api/test"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-
-	"github.com/go-playground/validator/v10"
 )
 
 var app = handler.Env{

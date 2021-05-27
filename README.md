@@ -1,6 +1,27 @@
-# A Go RESTful API Starter Kit
+# A starter kit for Go API development
 
-# TODO 
+## Motivation
+The best way to be an expert in something is to start working on it ... from scratch.
+
+## Architecture: SOLID principles 
+- This repo is structured in a way that there is clear separation of 
+functionalities for your controller, business logic and database operations. 
+- Dependencies are injected from outside to inside. 
+- Swapping a router or database library to a different one becomes much easier. 
+
+This is the idea behind [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html). 
+This way, it is easy to switch whichever library to another of your choice.
+
+## TODO
+- [x] Framework-less and net/http compatible handler
+- [x] Router/Mux with [Chi Router](https://github.com/go-chi/chi)
+- [x] Environment [Viper](https://github.com/spf13/viper)
+- [x] Logger [Zap](https://github.com/uber-go/zap)
+- [x] JWT Authentication
+- [ ] Google/Facebook/Apple Authentication
+- [ ] Scans and auto-generate [Swagger](https://github.com/swaggo/swag) docs using a declarative comments format
+
+# TO READ 
 - https://medium.com/@benbjohnson/structuring-applications-in-go-3b04be4ff091
 - https://medium.com/@matryer/how-i-write-go-http-services-after-seven-years-37c208122831
 

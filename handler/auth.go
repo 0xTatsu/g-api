@@ -126,8 +126,9 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, error
 		return nil, res.Error{HttpCode: http.StatusUnauthorized}
 	}
 
+	accessClaims := user.AccessClaims()
 	refreshClaims := jwt.RefreshClaims{ID: user.ID}
-	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(user.Claims(), refreshClaims)
+	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(accessClaims, refreshClaims)
 	if err != nil {
 		return nil, res.Error{HttpCode: http.StatusInternalServerError}
 	}
@@ -214,7 +215,7 @@ func (h *Auth) refreshToken(w http.ResponseWriter, r *http.Request) (interface{}
 		return nil, res.Error{HttpCode: http.StatusUnauthorized}
 	}
 
-	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(user.Claims(), refreshClaims)
+	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(user.AccessClaims(), refreshClaims)
 	if err != nil {
 		return nil, res.Error{HttpCode: http.StatusInternalServerError}
 	}
