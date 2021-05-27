@@ -1,22 +1,4 @@
-# Go RESTful API Starter Kit
-
-# Migration
-- https://github.com/golang-migrate/migrate/blob/master/database/postgres/TUTORIAL.md
-```
-# Install
-brew install golang-migrate
-
-# View options
-migrate -help
-
-# Create migration files
-migrate create -ext sql -dir db/migration user
-
-# Run migration
-migrate -database YOUR_DATABASE_URL -path PATH_TO_YOUR_MIGRATIONS up/down
-migrate -path db/migration -database "postgresql://user:pass@localhost:5432/simple_bank?sslmode=disable" -verbose up
-
-```
+# A Go RESTful API Starter Kit
 
 # TODO 
 - https://medium.com/@benbjohnson/structuring-applications-in-go-3b04be4ff091
