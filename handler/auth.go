@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/0xTatsu/g-api/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/0xTatsu/g-api/handler/validator"
 	"github.com/0xTatsu/g-api/jwt"
 	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/repo"
@@ -17,20 +19,23 @@ import (
 )
 
 type Auth struct {
-	env      Env
-	authJWT  JWT
-	userRepo UserRepo
+	authJWT   JWT
+	userRepo  UserRepo
+	cfg       *config.Env
+	validator *validator.Validator
 }
 
 func NewAuth(
-	env Env,
 	authJWT JWT,
 	userRepo UserRepo,
+	cfg *config.Env,
+	validator *validator.Validator,
 ) *Auth {
 	return &Auth{
-		env:      env,
-		authJWT:  authJWT,
-		userRepo: userRepo,
+		cfg:       cfg,
+		authJWT:   authJWT,
+		userRepo:  userRepo,
+		validator: validator,
 	}
 }
 
@@ -66,7 +71,7 @@ func (h *Auth) Register(w http.ResponseWriter, r *http.Request) (interface{}, er
 		return nil, err
 	}
 
-	if validateErrs := h.env.Validator.Validate(body); validateErrs.Errors != nil {
+	if validateErrs := h.validator.Validate(body); validateErrs.Errors != nil {
 		return nil, validateErrs
 	}
 
@@ -108,7 +113,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, error
 		return nil, err
 	}
 
-	if validateErrs := h.env.Validator.Validate(body); validateErrs.Errors != nil {
+	if validateErrs := h.validator.Validate(body); validateErrs.Errors != nil {
 		return nil, validateErrs
 	}
 
@@ -157,7 +162,7 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 		return nil, err
 	}
 
-	if validateErrs := h.env.Validator.Validate(body); validateErrs.Errors != nil {
+	if validateErrs := h.validator.Validate(body); validateErrs.Errors != nil {
 		return nil, validateErrs
 	}
 
@@ -190,7 +195,7 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 
 func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	c := &http.Cookie{
-		Name:     h.env.Cfg.JwtHttpCookieKey,
+		Name:     h.cfg.JwtHttpCookieKey,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,

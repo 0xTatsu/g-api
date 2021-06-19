@@ -7,18 +7,17 @@ import (
 	"os"
 	"time"
 
+	appValidator "github.com/0xTatsu/g-api/handler/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/0xTatsu/g-api/config"
 	"github.com/0xTatsu/g-api/handler"
-	appValidator "github.com/0xTatsu/g-api/handler/validator"
 	"github.com/0xTatsu/g-api/jwt"
 	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/repo"
@@ -31,11 +30,6 @@ func main() {
 	envCfg, err := config.New()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
-	}
-
-	appEnv := handler.Env{
-		Cfg:       *envCfg,
-		Validator: appValidator.New(validator.New()),
 	}
 
 	db := initDB(envCfg.DbUrl)
@@ -51,7 +45,7 @@ func main() {
 
 	authJWT := jwt.NewJWT(envCfg)
 	userRepo := repo.NewUser(db)
-	authAPI := handler.NewAuth(appEnv, authJWT, userRepo)
+	authAPI := handler.NewAuth(authJWT, userRepo, envCfg, appValidator.New())
 
 	// Public routes
 	r.Mount("/auth", authAPI.Router(r))

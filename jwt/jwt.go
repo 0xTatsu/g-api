@@ -19,6 +19,7 @@ type AuthJWT struct {
 
 func NewJWT(
 	cfg *config.Env,
+
 ) *AuthJWT {
 	return &AuthJWT{
 		cfg:     cfg,

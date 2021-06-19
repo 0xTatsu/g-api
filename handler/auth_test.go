@@ -10,36 +10,32 @@ import (
 	"github.com/0xTatsu/g-api/config"
 	"github.com/0xTatsu/g-api/handler"
 	"github.com/0xTatsu/g-api/handler/mocks"
-	appValidator "github.com/0xTatsu/g-api/handler/validator"
+	"github.com/0xTatsu/g-api/handler/validator"
 	"github.com/0xTatsu/g-api/jwt"
 	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/res"
 	"github.com/0xTatsu/g-api/test"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-var app = handler.Env{
-	Cfg: config.Env{
-		JwtSecret:              "",
-		JwtHttpCookieKey:       "token",
-		JwtExpiryInHour:        24,
-		JwtRefreshExpiryInHour: 25 * 30,
-	},
-	Validator: appValidator.New(validator.New()),
+var cfg = config.Env{
+	JwtSecret:              "",
+	JwtHttpCookieKey:       "token",
+	JwtExpiryInHour:        24,
+	JwtRefreshExpiryInHour: 25 * 30,
 }
 
 const (
-	ctxAccessClaimsKey  = "ctxAccessClaimsKey"
-	ctxRefreshClaimsKey = "ctxRefreshClaimsKey"
-	hashedPass          = "$2a$10$/O5r9A49M0ewJjsXvoh7dOzF.OdazGXYi/qTf/b3.u6zOk0JQv4U."
+	// ctxAccessClaimsKey  = "ctxAccessClaimsKey"
+	// ctxRefreshClaimsKey = "ctxRefreshClaimsKey"
+	hashedPass = "$2a$10$/O5r9A49M0ewJjsXvoh7dOzF.OdazGXYi/qTf/b3.u6zOk0JQv4U."
 )
 
 func Test_Register(t *testing.T) {
 	ctx := context.TODO()
-	authJWT := jwt.NewJWT(&app.Cfg)
+	authJWT := jwt.NewJWT(&cfg)
 
 	t.Run("if request validation fails, return errors", func(t *testing.T) {
 		body := []byte(`{}`)
@@ -47,7 +43,7 @@ func Test_Register(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Register(w, r)
 
 		assert.Nil(t, data)
@@ -66,7 +62,7 @@ func Test_Register(t *testing.T) {
 
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("Create", ctx, mock.Anything).Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Register(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -92,7 +88,7 @@ func Test_Register(t *testing.T) {
 				assert.NotEmpty(t, actualData.Password)
 			}
 		}).Return(nil, nil)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Register(w, r)
 
 		assert.Nil(t, err)
@@ -104,7 +100,7 @@ func Test_Register(t *testing.T) {
 
 func Test_Login(t *testing.T) {
 	ctx := context.TODO()
-	authJWT := jwt.NewJWT(&app.Cfg)
+	authJWT := jwt.NewJWT(&cfg)
 
 	t.Run("if request validation fails, return errors", func(t *testing.T) {
 		var body = []byte(`{"email": "abc@", "password":""}`)
@@ -112,7 +108,7 @@ func Test_Login(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -129,7 +125,7 @@ func Test_Login(t *testing.T) {
 
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -147,7 +143,7 @@ func Test_Login(t *testing.T) {
 		user := &model.User{Password: ""}
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -163,7 +159,7 @@ func Test_Login(t *testing.T) {
 		user := &model.User{Password: hashedPass, Active: false}
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -182,7 +178,7 @@ func Test_Login(t *testing.T) {
 		}
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -205,9 +201,9 @@ func Test_Login(t *testing.T) {
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(test.ErrTest)
-		app.Cfg.JwtSecret = "not so secret"
-		authJWT := jwt.NewJWT(&app.Cfg)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		cfg.JwtSecret = "not so secret"
+		authJWT := jwt.NewJWT(&cfg)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -230,9 +226,9 @@ func Test_Login(t *testing.T) {
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByEmail", ctx, "abc@gmail.com").Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(nil)
-		app.Cfg.JwtSecret = "not so secret"
-		authJWT := jwt.NewJWT(&app.Cfg)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		cfg.JwtSecret = "not so secret"
+		authJWT := jwt.NewJWT(&cfg)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.Login(w, r)
 		assert.Nil(t, err)
 		user, ok := data.(*model.User)
@@ -255,7 +251,7 @@ func Test_ChangePassword(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 
 		userRepo := &mocks.UserRepo{}
-		authHandler := handler.NewAuth(app, nil, userRepo)
+		authHandler := handler.NewAuth(nil, userRepo, &cfg, validator.New())
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, data)
 		assert.Error(t, err)
@@ -274,7 +270,7 @@ func Test_ChangePassword(t *testing.T) {
 		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(jwt.AccessClaims{ID: userID}).Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, data)
 		assert.Equal(t, err.(res.Error).HttpCode, http.StatusInternalServerError)
@@ -293,7 +289,7 @@ func Test_ChangePassword(t *testing.T) {
 		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(jwt.AccessClaims{ID: userID}).Return(&model.User{Password: "123"}, nil)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, data)
@@ -316,7 +312,7 @@ func Test_ChangePassword(t *testing.T) {
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(nil)
-		authHandler := handler.NewAuth(app, authJWT, userRepo)
+		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
 
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, err)

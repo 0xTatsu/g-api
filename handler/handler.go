@@ -24,20 +24,19 @@ type Handler struct {
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	data, err := h.H(w, r)
 	if err != nil {
-		switch err.(type) {
+		switch err := err.(type) {
 		case res.Error:
-			val := err.(res.Error)
 			httpStatusCode := http.StatusBadRequest
-			if val.HttpCode != 0 {
-				httpStatusCode = val.HttpCode
+			if err.HttpCode != 0 {
+				httpStatusCode = err.HttpCode
 			}
 
-			if val.Code == "" && val.Msg == "" && val.Errors == nil {
+			if err.Code == "" && err.Msg == "" && err.Errors == nil {
 				res.WithNoContent(w, r, httpStatusCode)
 				return
 			}
 
-			res.WithError(w, r, httpStatusCode, val)
+			res.WithError(w, r, httpStatusCode, err)
 			return
 
 		case error:
@@ -53,9 +52,9 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if data != nil {
-		switch data.(type) {
+		switch data := data.(type) {
 		case int:
-			res.WithNoContent(w, r, data.(int))
+			res.WithNoContent(w, r, data)
 		default:
 			res.WithData(w, r, data)
 			return
