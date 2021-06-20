@@ -25,7 +25,8 @@ func Authenticator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, claims, err := jwtauth.FromContext(r.Context())
 		if err != nil {
-			http.Error(w, jwtauth.ErrorReason(err).Error(), http.StatusUnauthorized)
+			zap.L().Error("cannot get token from context", zap.Error(jwtauth.ErrorReason(err)))
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 
