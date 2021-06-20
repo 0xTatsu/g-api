@@ -8,8 +8,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var AccessClaimCtxKey = &contextKey{"AccessClaimCtxKey"}
-var RefreshClaimCtxKey = &contextKey{"RefreshClaimCtxKey"}
+var (
+	AccessClaimCtxKey  = &contextKey{"AccessClaimCtxKey"}
+	RefreshClaimCtxKey = &contextKey{"RefreshClaimCtxKey"}
+)
 
 type contextKey struct {
 	name string

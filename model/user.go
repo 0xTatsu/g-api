@@ -26,10 +26,10 @@ type User struct {
 	Active    bool           `json:"active"`
 	Roles     pq.StringArray `json:"roles" gorm:"type:text[]"`
 	Birthday  *time.Time     `json:"birthday"`
-	LastLogin time.Time      `json:"last_login"`
+	LastLogin time.Time      `json:"lastLogin"`
 
-	AccessToken  string `json:"access_token" gorm:"-"`
-	RefreshToken string `json:"refresh_token" gorm:"-"`
+	AccessToken  string `json:"accessToken" gorm:"-"`
+	RefreshToken string `json:"refreshToken" gorm:"-"`
 }
 
 // CanLogin returns true if user is allowed to login.

@@ -1,0 +1,23 @@
+linters:
+  enable-all: true
+  disable:
+    - gci
+    - lll
+    - wsl
+    - godot
+    - revive
+    - nlreturn
+    - wrapcheck
+    - paralleltest
+    - exhaustivestruct
+    - gochecknoglobals
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - funlen
+        - errorlint
+        - forcetypeassert

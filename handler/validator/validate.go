@@ -28,7 +28,7 @@ func (v Validator) Validate(input interface{}) res.Error {
 			zap.L().Error("failed to parse validation errors", zap.Error(err))
 
 			return res.Error{
-				HttpCode: http.StatusInternalServerError,
+				HTTPCode: http.StatusInternalServerError,
 				Msg:      http.StatusText(http.StatusInternalServerError),
 			}
 		}

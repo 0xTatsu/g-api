@@ -29,10 +29,10 @@ func main() {
 
 	envCfg, err := config.New()
 	if err != nil {
-		log.Fatal("cannot load config:", err)
+		log.Print("cannot load config:", err)
 	}
 
-	db := initDB(envCfg.DbUrl)
+	db := initDB(envCfg.DBURL)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -57,7 +57,7 @@ func main() {
 
 		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
 			_, claims, _ := jwtauth.FromContext(r.Context())
-			fmt.Println(claims) // TODO: remove
+			fmt.Println(claims) // nolint
 			render.JSON(w, r, http.NoBody)
 		})
 	})
@@ -68,7 +68,7 @@ func main() {
 	}
 
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("cannot start server: %s", err)
+		log.Panicf("cannot start server: %s", err)
 	}
 }
 

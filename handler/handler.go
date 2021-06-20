@@ -17,30 +17,27 @@ type Env struct {
 }
 
 type Handler struct {
-	H func(w http.ResponseWriter, r *http.Request) (interface{}, error)
+	H func(w http.ResponseWriter, r *http.Request) (interface{}, interface{})
 }
 
 // ServeHTTP allows our Handler type to satisfy http.Handler.
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	data, err := h.H(w, r)
-	if err != nil {
-		switch err := err.(type) {
+	dataHandler, errHandler := h.H(w, r)
+	if errHandler != nil {
+		switch err := errHandler.(type) {
+		case int:
+			res.WithNoContent(w, r, err)
 		case res.Error:
 			httpStatusCode := http.StatusBadRequest
-			if err.HttpCode != 0 {
-				httpStatusCode = err.HttpCode
-			}
-
-			if err.Code == "" && err.Msg == "" && err.Errors == nil {
-				res.WithNoContent(w, r, httpStatusCode)
-				return
+			if err.HTTPCode != 0 {
+				httpStatusCode = err.HTTPCode
 			}
 
 			res.WithError(w, r, httpStatusCode, err)
 			return
 
 		case error:
-			res.WithErrMsg(w, r, http.StatusBadRequest, err.(error).Error())
+			res.WithErrMsg(w, r, http.StatusBadRequest, err.Error())
 			return
 
 		default:
@@ -51,8 +48,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if data != nil {
-		switch data := data.(type) {
+	if dataHandler != nil {
+		switch data := dataHandler.(type) {
 		case int:
 			res.WithNoContent(w, r, data)
 		default:

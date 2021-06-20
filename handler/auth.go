@@ -59,11 +59,11 @@ func (h *Auth) Router(r *chi.Mux) *chi.Mux {
 	return r
 }
 
-func (h *Auth) Register(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *Auth) Register(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 	type request struct {
 		Email           string `json:"email" validate:"required,email"`
 		Password        string `json:"password" validate:"required,min=8"`
-		ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
+		ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
 	}
 
 	var body request
@@ -78,7 +78,7 @@ func (h *Auth) Register(w http.ResponseWriter, r *http.Request) (interface{}, er
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		zap.L().Error("cannot generate hash password", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, http.StatusInternalServerError
 	}
 
 	user := &model.User{
@@ -96,13 +96,13 @@ func (h *Auth) Register(w http.ResponseWriter, r *http.Request) (interface{}, er
 
 	if createError != nil {
 		zap.L().Error("cannot create user", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	return http.StatusCreated, nil
 }
 
-func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 	type request struct {
 		Email    string `json:"email" validate:"required,email"`
 		Password string `json:"password" validate:"required,min=8"`
@@ -120,28 +120,28 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, error
 	user, err := h.userRepo.GetByEmail(r.Context(), body.Email)
 	if err != nil {
 		zap.L().Error("cannot get user by email", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	if !user.IsValidPassword(body.Password) {
-		return nil, res.Error{HttpCode: http.StatusUnauthorized}
+		return nil, res.Error{HTTPCode: http.StatusUnauthorized}
 	}
 
 	if !user.CanLogin() {
-		return nil, res.Error{HttpCode: http.StatusUnauthorized}
+		return nil, res.Error{HTTPCode: http.StatusUnauthorized}
 	}
 
 	accessClaims := user.AccessClaims()
 	refreshClaims := jwt.RefreshClaims{ID: user.ID}
 	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(accessClaims, refreshClaims)
 	if err != nil {
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	user.LastLogin = time.Now()
 	if err := h.userRepo.Update(r.Context(), user); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	user.AccessToken = accessToken
@@ -150,11 +150,11 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, error
 	return user, nil
 }
 
-func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 	type request struct {
 		Password        string `json:"password" validate:"required,min=8"`
-		NewPassword     string `json:"new_password" validate:"required,min=8"`
-		ConfirmPassword string `json:"confirm_password" validate:"eqfield=NewPassword"`
+		NewPassword     string `json:"newPassword" validate:"required,min=8"`
+		ConfirmPassword string `json:"confirmPassword" validate:"eqfield=NewPassword"`
 	}
 
 	body := request{}
@@ -170,7 +170,7 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 	user, err := h.userRepo.GetByID(r.Context(), accessClaims.ID)
 	if err != nil {
 		zap.L().Error("cannot get user by ID", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	if !user.IsValidPassword(body.Password) {
@@ -181,21 +181,21 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		zap.L().Error("cannot generate has from password", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	user.Password = string(hashPassword)
 	if err := h.userRepo.Update(r.Context(), user); err != nil {
 		zap.L().Error("cannot update password", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	return http.StatusNoContent, nil
 }
 
-func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 	c := &http.Cookie{
-		Name:     h.cfg.JwtHttpCookieKey,
+		Name:     h.cfg.JwtHTTPCookieKey,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
@@ -207,28 +207,28 @@ func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, erro
 	return http.StatusOK, nil
 }
 
-func (h *Auth) refreshToken(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *Auth) refreshToken(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 	refreshClaims := RefreshClaimsFromCtx(r.Context())
 
 	user, err := h.userRepo.GetByID(r.Context(), refreshClaims.ID)
 	if err != nil {
 		zap.L().Error("cannot get user by email", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	if !user.CanLogin() {
-		return nil, res.Error{HttpCode: http.StatusUnauthorized}
+		return nil, res.Error{HTTPCode: http.StatusUnauthorized}
 	}
 
 	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(user.AccessClaims(), refreshClaims)
 	if err != nil {
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	user.LastLogin = time.Now()
 	if err := h.userRepo.Update(r.Context(), user); err != nil {
 		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		return nil, res.Error{HttpCode: http.StatusInternalServerError}
+		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
 	user.AccessToken = accessToken

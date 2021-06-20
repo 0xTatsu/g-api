@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -25,11 +26,16 @@ type AccessClaims struct {
 	StandardClaims
 }
 
+var (
+	ErrIDInvalid   = errors.New("id is invalid")
+	ErrRoleInvalid = errors.New("roles is invalid")
+)
+
 // ParseClaims parses JWT claims into AccessClaims.
 func (c *AccessClaims) ParseClaims(claims jwt.MapClaims) error {
 	id, exist := claims["id"]
 	if !exist {
-		return errors.New("could not parse claim id")
+		return fmt.Errorf("access claims: %w", ErrIDInvalid)
 	}
 	c.ID = uint(id.(float64))
 
@@ -41,7 +47,7 @@ func (c *AccessClaims) ParseClaims(claims jwt.MapClaims) error {
 
 	rl, exist := claims["roles"]
 	if !exist {
-		return errors.New("could not parse claims roles")
+		return fmt.Errorf("access claims: %w", ErrRoleInvalid)
 	}
 
 	var roles []string
@@ -65,7 +71,7 @@ type RefreshClaims struct {
 func (c *RefreshClaims) ParseClaims(claims jwt.MapClaims) error {
 	id, exist := claims["id"]
 	if !exist {
-		return errors.New("could not parse claim id")
+		return fmt.Errorf("refresh claims: %w", ErrIDInvalid)
 	}
 	c.ID = uint(id.(float64))
 

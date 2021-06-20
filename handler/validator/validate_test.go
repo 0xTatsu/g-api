@@ -9,13 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// nolint:funlen
 func Test_Validate(t *testing.T) {
 	t.Parallel()
 	validation := appValidator.New()
 	t.Run("throw error if invalidValidationError", func(t *testing.T) {
 		err := validation.Validate("test")
-		assert.Equal(t, err.HttpCode, http.StatusInternalServerError)
+		assert.Equal(t, err.HTTPCode, http.StatusInternalServerError)
 	})
 
 	testcases := []struct {

@@ -30,7 +30,7 @@ type (
 )
 
 type Error struct {
-	HttpCode int     `json:"-"`
+	HTTPCode int     `json:"-"`
 	Code     string  `json:"code,omitempty"`
 	Msg      string  `json:"message,omitempty"`
 	Errors   *Errors `json:"errors,omitempty"`
@@ -72,7 +72,7 @@ func WithData(w http.ResponseWriter, r *http.Request, data interface{}) {
 	items := make(Items, vData.Len())
 	for i := 0; i < vData.Len(); i++ {
 		temp := vData.Index(i).Interface()
-		items[i] = temp.(Item)
+		items[i], _ = temp.(Item)
 	}
 
 	WithItems(w, r, items)

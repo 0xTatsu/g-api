@@ -22,12 +22,12 @@ func New() (*Env, error) {
 type Env struct {
 	// JWT
 	JwtSecret              string `mapstructure:"JWT_SECRET,omitempty"`
-	JwtHttpCookieKey       string `mapstructure:"JWT_HTTP_COOKIE_KEY,omitempty"`
+	JwtHTTPCookieKey       string `mapstructure:"JWT_HTTP_COOKIE_KEY,omitempty"`
 	JwtExpiryInHour        int    `mapstructure:"JWT_EXPIRY_IN_HOUR,omitempty"`
 	JwtRefreshExpiryInHour int    `mapstructure:"JWT_REFRESH_EXPIRY_IN_HOUR,omitempty"`
 
 	// Database
-	DbUrl string `mapstructure:"DATABASE_DNS,omitempty"`
+	DBURL string `mapstructure:"DATABASE_DNS,omitempty"`
 
 	// Server
 	ServerTimeout int    `mapstructure:"SERVER_TIMEOUT_SECONDS,omitempty"`

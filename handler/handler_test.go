@@ -14,17 +14,18 @@ import (
 )
 
 func Test_Handler(t *testing.T) {
+	t.Parallel()
 	tc := []struct {
 		name           string
 		data           interface{}
-		err            error
-		expectHttpCode int
+		err            interface{}
+		expectHTTPCode int
 		expectBody     string
 	}{
 		{
 			"Error: WithNoContent",
 			nil,
-			res.Error{HttpCode: http.StatusInternalServerError},
+			http.StatusInternalServerError,
 			http.StatusInternalServerError,
 			``,
 		},
@@ -68,16 +69,17 @@ func Test_Handler(t *testing.T) {
 	for _, c := range tc {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodPost, "/", nil)
-			testHandler := func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+			testHandler := func(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 				return c.data, c.err
 			}
 			route := chi.NewRouter()
 			route.Method(http.MethodPost, "/", handler.Handler{H: testHandler})
 			route.ServeHTTP(w, r)
 
-			assert.Equal(t, w.Code, c.expectHttpCode)
+			assert.Equal(t, w.Code, c.expectHTTPCode)
 			if w.Body.String() != "" {
 				assert.JSONEq(t, c.expectBody, w.Body.String())
 			} else {
