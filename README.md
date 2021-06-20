@@ -1,4 +1,5 @@
 # A starter kit for Go API development
+[![codecov](https://codecov.io/gh/0xTatsu/g-api/branch/main/graph/badge.svg?token=77ILCE8419)](https://codecov.io/gh/0xTatsu/g-api)
 
 ## Motivation
 The best way to be an expert in something is to start working on it ... from scratch.
