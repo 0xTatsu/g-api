@@ -5,13 +5,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - uses: actions/setup-go@v2
         with:
           go-version: '1.16'
-      - run: go version
-      - name: Running Test
-        run: go test -race -coverprofile=coverage.out -covermode=atomic
-      - name: Uploading Test Coverage to Codecov
+      - name: Download & Run gotestsum
+        run: |
+          go get gotest.tools/gotestsum
+          GOFLAGS=-mod=mod gotestsum --jsonfile report.json -- -race -coverprofile=coverage.out ./...
+      - name: Upload Test Coverage to Codecov
         run: bash <(curl -s https://codecov.io/bash)
