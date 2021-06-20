@@ -166,7 +166,7 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 		return nil, validateErrs
 	}
 
-	accessClaims := h.authJWT.ClaimsFromCtx(r.Context())
+	accessClaims := AccessClaimsFromCtx(r.Context())
 	user, err := h.userRepo.GetByID(r.Context(), accessClaims.ID)
 	if err != nil {
 		zap.L().Error("cannot get user by ID", zap.Error(err))
@@ -208,7 +208,7 @@ func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, erro
 }
 
 func (h *Auth) refreshToken(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	refreshClaims := h.authJWT.RefreshClaimsFromCtx(r.Context())
+	refreshClaims := RefreshClaimsFromCtx(r.Context())
 
 	user, err := h.userRepo.GetByID(r.Context(), refreshClaims.ID)
 	if err != nil {

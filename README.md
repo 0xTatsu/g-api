@@ -30,3 +30,4 @@ This way, it is easy to switch whichever library to another of your choice.
 - https://scene-si.org/2018/05/08/protecting-api-access-with-jwt/
 - JWT Flow: https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/
 - https://blog.questionable.services/article/http-handler-error-handling-revisited/
+- https://use-the-index-luke.com/no-offset

@@ -8,10 +8,16 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	ctxAccessClaimsKey  = "ctxAccessClaimsKey"
-	ctxRefreshClaimsKey = "ctxRefreshClaimsKey"
-)
+var AccessClaimCtxKey = &contextKey{"AccessClaimCtxKey"}
+var RefreshClaimCtxKey = &contextKey{"RefreshClaimCtxKey"}
+
+type contextKey struct {
+	name string
+}
+
+func (k *contextKey) String() string {
+	return "g-api context value " + k.name
+}
 
 func Authenticator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +37,7 @@ func Authenticator(next http.Handler) http.Handler {
 		}
 
 		// Set AccessClaims on context
-		ctx := context.WithValue(r.Context(), ctxAccessClaimsKey, accessClaims)
+		ctx := context.WithValue(r.Context(), AccessClaimCtxKey, accessClaims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -40,6 +46,10 @@ func Authenticator(next http.Handler) http.Handler {
 func AuthenticateRefreshJWT(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, claims, err := jwtauth.FromContext(r.Context())
+		if err != nil {
+			http.Error(w, jwtauth.ErrorReason(err).Error(), http.StatusUnauthorized)
+			return
+		}
 
 		// Token is authenticated, parse refresh token string
 		var c RefreshClaims
@@ -51,7 +61,7 @@ func AuthenticateRefreshJWT(next http.Handler) http.Handler {
 		}
 
 		// Set refresh token string on context
-		ctx := context.WithValue(r.Context(), ctxRefreshClaimsKey, c)
+		ctx := context.WithValue(r.Context(), RefreshClaimCtxKey, c)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

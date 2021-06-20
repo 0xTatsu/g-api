@@ -66,14 +66,22 @@ type Validator interface {
 	Validate(input interface{}) res.Error
 }
 
+// AccessClaimsFromCtx retrieves the parsed AccessClaims from request context.
+func AccessClaimsFromCtx(ctx context.Context) jwt.AccessClaims {
+	return ctx.Value(jwt.AccessClaimCtxKey).(jwt.AccessClaims)
+}
+
+// RefreshClaimsFromCtx retrieves the parsed refresh token from context.
+func RefreshClaimsFromCtx(ctx context.Context) jwt.RefreshClaims {
+	return ctx.Value(jwt.RefreshClaimCtxKey).(jwt.RefreshClaims)
+}
+
 //go:generate mockery --name JWT --case snake
 type JWT interface {
 	CreateAccessToken(c jwt.AccessClaims) (string, error)
 	CreateRefreshToken(c jwt.RefreshClaims) (string, error)
 	CreateTokenPair(accessClaims jwt.AccessClaims, refreshClaims jwt.RefreshClaims) (string, string, error)
 	Verifier() func(http.Handler) http.Handler
-	ClaimsFromCtx(ctx context.Context) jwt.AccessClaims
-	RefreshClaimsFromCtx(ctx context.Context) jwt.RefreshClaims
 }
 
 //go:generate mockery --name UserRepo --case snake

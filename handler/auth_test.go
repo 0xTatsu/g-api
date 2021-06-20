@@ -15,6 +15,7 @@ import (
 	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/res"
 	"github.com/0xTatsu/g-api/test"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -28,8 +29,6 @@ var cfg = config.Env{
 }
 
 const (
-	// ctxAccessClaimsKey  = "ctxAccessClaimsKey"
-	// ctxRefreshClaimsKey = "ctxRefreshClaimsKey"
 	hashedPass = "$2a$10$/O5r9A49M0ewJjsXvoh7dOzF.OdazGXYi/qTf/b3.u6zOk0JQv4U."
 )
 
@@ -243,12 +242,14 @@ func Test_Login(t *testing.T) {
 }
 
 func Test_ChangePassword(t *testing.T) {
-	ctx := context.TODO()
+	userID := uint(1)
+	ctx := context.WithValue(context.TODO(), jwt.AccessClaimCtxKey, jwt.AccessClaims{ID: userID})
 
 	t.Run("if confirm_password doesn't match, return error", func(t *testing.T) {
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"123456789"}`)
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+		r, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
+		require.NoError(t, err)
 
 		userRepo := &mocks.UserRepo{}
 		authHandler := handler.NewAuth(nil, userRepo, &cfg, validator.New())
@@ -264,32 +265,28 @@ func Test_ChangePassword(t *testing.T) {
 	t.Run("if get user by ID fails, return internal error", func(t *testing.T) {
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"12345678"}`)
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		userID := uint(1)
-		authJWT := &mocks.JWT{}
-		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
+		r, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
+		require.NoError(t, err)
+
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(jwt.AccessClaims{ID: userID}).Return(nil, test.ErrTest)
-		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
+		authHandler := handler.NewAuth(nil, userRepo, &cfg, validator.New())
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, data)
 		assert.Equal(t, err.(res.Error).HttpCode, http.StatusInternalServerError)
 
-		authJWT.AssertExpectations(t)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if old password is incorrect, return error", func(t *testing.T) {
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"12345678"}`)
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+		r, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
+		require.NoError(t, err)
 
-		userID := uint(1)
-		authJWT := &mocks.JWT{}
-		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(jwt.AccessClaims{ID: userID}).Return(&model.User{Password: "123"}, nil)
-		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
+		authHandler := handler.NewAuth(nil, userRepo, &cfg, validator.New())
 
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, data)
@@ -297,28 +294,25 @@ func Test_ChangePassword(t *testing.T) {
 		errs := *err.(res.Error).Errors
 		assert.Equal(t, errs[0].Code, res.CodeIncorrectOldPass)
 
-		authJWT.AssertExpectations(t)
 		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("if update succeeds, return user data with tokens", func(t *testing.T) {
 		var body = []byte(`{"password": "12345678", "new_password":"12345678", "confirm_password":"12345678"}`)
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-		userID := uint(1)
+		r, err := http.NewRequestWithContext(ctx, http.MethodPost, "/register", bytes.NewBuffer(body))
+		require.NoError(t, err)
+
 		user := &model.User{ID: userID, Password: hashedPass, Roles: []string{model.RoleUser}}
-		authJWT := &mocks.JWT{}
-		authJWT.On("ClaimsFromCtx", ctx).Return(jwt.AccessClaims{ID: userID})
 		userRepo := &mocks.UserRepo{}
 		userRepo.On("GetByID", ctx, userID).Return(user, nil)
 		userRepo.On("Update", ctx, user).Return(nil)
-		authHandler := handler.NewAuth(authJWT, userRepo, &cfg, validator.New())
+		authHandler := handler.NewAuth(nil, userRepo, &cfg, validator.New())
 
 		data, err := authHandler.ChangePassword(w, r)
 		assert.Nil(t, err)
 		assert.Equal(t, http.StatusNoContent, data)
 
-		authJWT.AssertExpectations(t)
 		userRepo.AssertExpectations(t)
 	})
 }
