@@ -50,11 +50,11 @@ func (h *Auth) Router(r *chi.Mux) *chi.Mux {
 		r.Method(http.MethodPost, "/logout", Handler{h.logout})
 	})
 
-	r.Group(func(r chi.Router) {
-		r.Use(h.authJWT.Verifier())
-		r.Use(jwt.AuthenticateRefreshJWT)
-		r.Method(http.MethodPost, "/token", Handler{h.refreshToken})
-	})
+	// r.Group(func(r chi.Router) {
+	// 	r.Use(h.authJWT.Verifier())
+	// 	r.Use(jwt.AuthenticateRefreshJWT)
+	// 	r.Method(http.MethodPost, "/token", Handler{h.refreshToken})
+	// })
 
 	return r
 }
@@ -133,7 +133,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, inter
 
 	accessClaims := user.AccessClaims()
 	refreshClaims := jwt.RefreshClaims{ID: user.ID}
-	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(accessClaims, refreshClaims)
+	accessToken, _, err := h.authJWT.CreateTokenPair(accessClaims, refreshClaims)
 	if err != nil {
 		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
@@ -145,7 +145,7 @@ func (h *Auth) Login(w http.ResponseWriter, r *http.Request) (interface{}, inter
 	}
 
 	user.AccessToken = accessToken
-	user.RefreshToken = refreshToken
+	// user.RefreshToken = refreshToken
 
 	return user, nil
 }
@@ -190,6 +190,8 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
+	// TODO: logout
+
 	return http.StatusNoContent, nil
 }
 
@@ -207,32 +209,32 @@ func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, inte
 	return http.StatusOK, nil
 }
 
-func (h *Auth) refreshToken(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
-	refreshClaims := RefreshClaimsFromCtx(r.Context())
-
-	user, err := h.userRepo.GetByID(r.Context(), refreshClaims.ID)
-	if err != nil {
-		zap.L().Error("cannot get user by email", zap.Error(err))
-		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
-	}
-
-	if !user.CanLogin() {
-		return nil, res.Error{HTTPCode: http.StatusUnauthorized}
-	}
-
-	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(user.AccessClaims(), refreshClaims)
-	if err != nil {
-		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
-	}
-
-	user.LastLogin = time.Now()
-	if err := h.userRepo.Update(r.Context(), user); err != nil {
-		zap.L().Error("cannot update lastLogin", zap.Error(err))
-		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
-	}
-
-	user.AccessToken = accessToken
-	user.RefreshToken = refreshToken
-
-	return user, nil
-}
+// func (h *Auth) refreshToken(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
+// 	refreshClaims := RefreshClaimsFromCtx(r.Context())
+//
+// 	user, err := h.userRepo.GetByID(r.Context(), refreshClaims.ID)
+// 	if err != nil {
+// 		zap.L().Error("cannot get user by email", zap.Error(err))
+// 		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
+// 	}
+//
+// 	if !user.CanLogin() {
+// 		return nil, res.Error{HTTPCode: http.StatusUnauthorized}
+// 	}
+//
+// 	accessToken, refreshToken, err := h.authJWT.CreateTokenPair(user.AccessClaims(), refreshClaims)
+// 	if err != nil {
+// 		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
+// 	}
+//
+// 	user.LastLogin = time.Now()
+// 	if err := h.userRepo.Update(r.Context(), user); err != nil {
+// 		zap.L().Error("cannot update lastLogin", zap.Error(err))
+// 		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
+// 	}
+//
+// 	user.AccessToken = accessToken
+// 	user.RefreshToken = refreshToken
+//
+// 	return user, nil
+// }

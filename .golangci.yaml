@@ -5,6 +5,7 @@ linters:
     - lll
     - wsl
     - godot
+    - godox
     - revive
     - nlreturn
     - wrapcheck
