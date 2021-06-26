@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	appValidator "github.com/0xTatsu/g-api/handler/validator"
@@ -62,12 +61,7 @@ func main() {
 		})
 	})
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = envCfg.ServerPort
-	}
-
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	if err := http.ListenAndServe(":"+envCfg.ServerPort, r); err != nil {
 		log.Panicf("cannot start server: %s", err)
 	}
 }

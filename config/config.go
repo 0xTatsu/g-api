@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/spf13/viper"
 )
 
@@ -15,6 +17,11 @@ func New() (*Env, error) {
 	}
 
 	err := viper.Unmarshal(&cfg)
+
+	serverPort := os.Getenv("PORT")
+	if serverPort != "" {
+		cfg.ServerPort = serverPort
+	}
 
 	return &cfg, err
 }
