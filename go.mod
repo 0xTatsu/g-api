@@ -12,6 +12,7 @@ require (
 	github.com/go-playground/validator/v10 v10.6.0
 	github.com/jackc/pgconn v1.8.1
 	github.com/leodido/go-urn v1.2.1 // indirect
+	github.com/lestrrat-go/jwx v1.2.1 // indirect
 	github.com/lib/pq v1.10.2
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/spf13/viper v1.7.1

@@ -29,7 +29,7 @@ type User struct {
 	LastLogin time.Time      `json:"lastLogin"`
 
 	AccessToken  string `json:"accessToken" gorm:"-"`
-	RefreshToken string `json:"refreshToken" gorm:"-"`
+	RefreshToken string `json:"-" gorm:"-"`
 }
 
 // CanLogin returns true if user is allowed to login.

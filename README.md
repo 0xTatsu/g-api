@@ -24,7 +24,6 @@ This way, it is easy to switch whichever library to another of your choice.
 
 # TO READ 
 - https://medium.com/@benbjohnson/structuring-applications-in-go-3b04be4ff091
-- https://medium.com/@matryer/how-i-write-go-http-services-after-seven-years-37c208122831
 
 # Good Reads
 - https://scene-si.org/2018/03/12/handling-http-requests-with-go-chi/
