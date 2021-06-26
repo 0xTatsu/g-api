@@ -307,3 +307,15 @@ func Test_ChangePassword(t *testing.T) {
 		userRepo.AssertExpectations(t)
 	})
 }
+
+func Test_Logout(t *testing.T) {
+	t.Run("if confirmPassword doesn't match, return error", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/logout", nil)
+
+		authHandler := handler.NewAuth(nil, nil, &cfg, nil)
+		data, err := authHandler.Logout(w, r)
+		assert.Equal(t, http.StatusOK, data)
+		assert.Nil(t, err)
+	})
+}

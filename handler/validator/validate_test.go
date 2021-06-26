@@ -17,6 +17,16 @@ func Test_Validate(t *testing.T) {
 		assert.Equal(t, err.HTTPCode, http.StatusInternalServerError)
 	})
 
+	t.Run("throw error if invalidValidationError", func(t *testing.T) {
+		notfound := struct {
+			Invalid string
+		}{
+			Invalid: "notfound",
+		}
+		err := validation.Validate(notfound)
+		assert.Equal(t, err, res.Error{})
+	})
+
 	testcases := []struct {
 		name        string
 		input       interface{}
@@ -65,6 +75,15 @@ func Test_Validate(t *testing.T) {
 				Valid:   "1991-09-01",
 			},
 			expectedMsg: "Invalid is not a datetime",
+		},
+		{
+			name: "not-supported-yet",
+			input: struct {
+				Invalid string `validate:"hostname"`
+			}{
+				Invalid: "127.0.0.1", // need to be valid
+			},
+			expectedMsg: "Invalid failed on hostname validation",
 		},
 	}
 

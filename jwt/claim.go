@@ -68,12 +68,12 @@ type RefreshClaims struct {
 }
 
 // ParseClaims parses the JWT claims into RefreshClaims.
-func (c *RefreshClaims) ParseClaims(claims jwt.MapClaims) error {
-	id, exist := claims["id"]
-	if !exist {
-		return fmt.Errorf("refresh claims: %w", ErrIDInvalid)
-	}
-	c.ID = uint(id.(float64))
-
-	return nil
-}
+// func (c *RefreshClaims) ParseClaims(claims jwt.MapClaims) error {
+// 	id, exist := claims["id"]
+// 	if !exist {
+// 		return fmt.Errorf("refresh claims: %w", ErrIDInvalid)
+// 	}
+// 	c.ID = uint(id.(float64))
+//
+// 	return nil
+// }

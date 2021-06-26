@@ -47,7 +47,7 @@ func (h *Auth) Router(r *chi.Mux) *chi.Mux {
 		r.Use(h.authJWT.Verifier())
 		r.Use(jwt.Authenticator)
 		r.Method(http.MethodPut, "/change-password", Handler{h.ChangePassword})
-		r.Method(http.MethodPost, "/logout", Handler{h.logout})
+		r.Method(http.MethodPost, "/logout", Handler{h.Logout})
 	})
 
 	// r.Group(func(r chi.Router) {
@@ -190,12 +190,12 @@ func (h *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) (interface
 		return nil, res.Error{HTTPCode: http.StatusInternalServerError}
 	}
 
-	// TODO: logout
+	// TODO: Logout
 
 	return http.StatusNoContent, nil
 }
 
-func (h *Auth) logout(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
+func (h *Auth) Logout(w http.ResponseWriter, r *http.Request) (interface{}, interface{}) {
 	c := &http.Cookie{
 		Name:     h.cfg.JwtHTTPCookieKey,
 		Value:    "",
