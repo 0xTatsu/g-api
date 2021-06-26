@@ -4,17 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/0xTatsu/g-api/config"
 	"github.com/0xTatsu/g-api/jwt"
 	"github.com/0xTatsu/g-api/model"
 	"github.com/0xTatsu/g-api/res"
 )
-
-// Env An application-wide configuration.
-type Env struct {
-	Cfg       config.Env
-	Validator Validator
-}
 
 type Handler struct {
 	H func(w http.ResponseWriter, r *http.Request) (interface{}, interface{})
@@ -27,6 +20,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch err := errHandler.(type) {
 		case int:
 			res.WithNoContent(w, r, err)
+			return
+
 		case res.Error:
 			httpStatusCode := http.StatusBadRequest
 			if err.HTTPCode != 0 {
@@ -52,6 +47,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch data := dataHandler.(type) {
 		case int:
 			res.WithNoContent(w, r, data)
+			return
+
 		default:
 			res.WithData(w, r, data)
 			return
