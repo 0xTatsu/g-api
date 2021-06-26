@@ -12,5 +12,11 @@ jobs:
         run: |
           go get gotest.tools/gotestsum
           GOFLAGS=-mod=mod gotestsum --jsonfile report.json -- -race -coverprofile=coverage.out ./...
-      - name: Upload Test Coverage to Codecov
-        run: bash <(curl -s https://codecov.io/bash)
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          files: ./report.json,./coverage.out # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
+#      - name: Upload Test Coverage to Codecov
+#        run: bash <(curl -s https://codecov.io/bash)
