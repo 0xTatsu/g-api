@@ -11,7 +11,7 @@ import (
 func TestJWT(t *testing.T) {
 	t.Run("CreateAccessToken succeeds", func(t *testing.T) {
 		accessClaims := jwt.AccessClaims{ID: uint(1), Roles: []string{"user"}}
-		envCfg := config.Env{JwtSecret: jwtSecret}
+		envCfg := config.Configs{JwtSecret: jwtSecret}
 		authJWT := jwt.NewJWT(&envCfg)
 		tokenString, err := authJWT.CreateAccessToken(accessClaims)
 		assert.NoError(t, err)
@@ -20,7 +20,7 @@ func TestJWT(t *testing.T) {
 
 	t.Run("CreateRefreshToken succeeds", func(t *testing.T) {
 		refreshClaims := jwt.RefreshClaims{ID: uint(1)}
-		envCfg := config.Env{JwtSecret: jwtSecret}
+		envCfg := config.Configs{JwtSecret: jwtSecret}
 		authJWT := jwt.NewJWT(&envCfg)
 		tokenString, err := authJWT.CreateRefreshToken(refreshClaims)
 		assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestJWT(t *testing.T) {
 	t.Run("CreateTokenPair succeeds", func(t *testing.T) {
 		accessClaims := jwt.AccessClaims{ID: uint(1), Roles: []string{"user"}}
 		refreshClaims := jwt.RefreshClaims{ID: uint(1)}
-		envCfg := config.Env{JwtSecret: jwtSecret}
+		envCfg := config.Configs{JwtSecret: jwtSecret}
 		authJWT := jwt.NewJWT(&envCfg)
 		accessToken, refreshToken, err := authJWT.CreateTokenPair(accessClaims, refreshClaims)
 		assert.NoError(t, err)
@@ -41,7 +41,7 @@ func TestJWT(t *testing.T) {
 	t.Run("No Secret provided, CreateTokenPair fails", func(t *testing.T) {
 		accessClaims := jwt.AccessClaims{ID: uint(1), Roles: []string{"user"}}
 		refreshClaims := jwt.RefreshClaims{ID: uint(1)}
-		envCfg := config.Env{}
+		envCfg := config.Configs{}
 		authJWT := jwt.NewJWT(&envCfg)
 		accessToken, refreshToken, err := authJWT.CreateTokenPair(accessClaims, refreshClaims)
 		assert.Error(t, err)

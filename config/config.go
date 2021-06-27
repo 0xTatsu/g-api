@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Env struct {
+type Configs struct {
 	// JWT
 	JwtSecret              string `mapstructure:"JWT_SECRET,omitempty"`
 	JwtHTTPCookieKey       string `mapstructure:"JWT_HTTP_COOKIE_KEY,omitempty"`
@@ -21,8 +21,8 @@ type Env struct {
 	ServerPort    string `mapstructure:"SERVER_PORT,omitempty"`
 }
 
-func New() (*Env, error) {
-	var cfg Env
+func New() (*Configs, error) {
+	var cfg Configs
 
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()

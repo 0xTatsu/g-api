@@ -31,3 +31,4 @@ This way, it is easy to switch whichever library to another of your choice.
 - JWT Flow: https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/
 - https://blog.questionable.services/article/http-handler-error-handling-revisited/
 - https://use-the-index-luke.com/no-offset
+- https://blog.j7mbo.com/bypassing-golangs-lack-of-constructors/

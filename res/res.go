@@ -78,20 +78,20 @@ func WithData(w http.ResponseWriter, r *http.Request, data interface{}) {
 	WithItems(w, r, items)
 }
 
-func WithItems(w http.ResponseWriter, r *http.Request, items Items) {
-	render.Status(r, http.StatusOK)
-	render.JSON(w, r, &Response{
-		Data: &Data{
-			Items: items,
-		},
-	})
-}
-
 func WithItem(w http.ResponseWriter, r *http.Request, item Item) {
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, &Response{
 		Data: &Data{
 			Items: []Item{item},
+		},
+	})
+}
+
+func WithItems(w http.ResponseWriter, r *http.Request, items Items) {
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, &Response{
+		Data: &Data{
+			Items: items,
 		},
 	})
 }

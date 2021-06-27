@@ -12,12 +12,12 @@ import (
 )
 
 type AuthJWT struct {
-	cfg     *config.Env
+	cfg     *config.Configs
 	jwtAuth *jwtauth.JWTAuth
 }
 
 func NewJWT(
-	cfg *config.Env,
+	cfg *config.Configs,
 
 ) *AuthJWT {
 	return &AuthJWT{

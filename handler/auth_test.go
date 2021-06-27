@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var cfg = config.Env{
+var cfg = config.Configs{
 	JwtSecret:              "",
 	JwtHTTPCookieKey:       "token",
 	JwtExpiryInHour:        24,

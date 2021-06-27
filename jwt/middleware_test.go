@@ -55,7 +55,7 @@ func TestAuthenticator(t *testing.T) {
 	})
 
 	t.Run("if succeeds, pass claims to a new context", func(t *testing.T) {
-		envCfg := config.Env{JwtSecret: jwtSecret}
+		envCfg := config.Configs{JwtSecret: jwtSecret}
 		authJWT := jwt.NewJWT(&envCfg)
 		claims := map[string]interface{}{"id": uint(31337), "roles": []string{"user"}}
 

@@ -21,14 +21,14 @@ import (
 type Auth struct {
 	authJWT   JWT
 	userRepo  UserRepo
-	cfg       *config.Env
+	cfg       *config.Configs
 	validator *validator.Validator
 }
 
 func NewAuth(
 	authJWT JWT,
 	userRepo UserRepo,
-	cfg *config.Env,
+	cfg *config.Configs,
 	validator *validator.Validator,
 ) *Auth {
 	return &Auth{
