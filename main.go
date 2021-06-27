@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -9,7 +8,6 @@ import (
 	appValidator "github.com/0xTatsu/g-api/handler/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
@@ -29,6 +27,7 @@ func main() {
 	envCfg, err := config.New()
 	if err != nil {
 		log.Print("cannot load config:", err)
+		return
 	}
 
 	db := initDB(envCfg.DBURL)
@@ -46,19 +45,16 @@ func main() {
 	userRepo := repo.NewUser(db)
 	authAPI := handler.NewAuth(authJWT, userRepo, envCfg, appValidator.New())
 
-	// Public routes
 	r.Mount("/auth", authAPI.Router(r))
-
-	// Protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(authJWT.Verifier())
 		r.Use(jwt.Authenticator)
 
-		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
-			_, claims, _ := jwtauth.FromContext(r.Context())
-			fmt.Println(claims) // nolint
-			render.JSON(w, r, http.NoBody)
-		})
+		// r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
+		// 	_, claims, _ := jwtauth.FromContext(r.Context())
+		// 	fmt.Println(claims) // nolint
+		// 	render.JSON(w, r, http.NoBody)
+		// })
 	})
 
 	if err := http.ListenAndServe(":"+envCfg.ServerPort, r); err != nil {
