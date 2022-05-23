@@ -22,8 +22,6 @@ This way, it is easy to switch whichever library to another of your choice.
 - [ ] Google/Facebook/Apple Authentication
 - [ ] Scans and auto-generate [Swagger](https://github.com/swaggo/swag) docs using a declarative comments format
 
-# TO READ 
-- https://medium.com/@benbjohnson/structuring-applications-in-go-3b04be4ff091
 
 # Good Reads
 - https://scene-si.org/2018/03/12/handling-http-requests-with-go-chi/
@@ -31,3 +29,4 @@ This way, it is easy to switch whichever library to another of your choice.
 - JWT Flow: https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/
 - https://blog.questionable.services/article/http-handler-error-handling-revisited/
 - https://use-the-index-luke.com/no-offset
+- https://medium.com/@benbjohnson/structuring-applications-in-go-3b04be4ff091
